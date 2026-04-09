@@ -1,0 +1,154 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Agent",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git checkout -b *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git pull*)",
+      "Bash(git rebase*)",
+      "Bash(git stash*)",
+      "Bash(git fetch*)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)",
+      "Bash(pnpm run *)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm install*)",
+      "Bash(pnpm exec *)",
+      "Bash(npx *)",
+      "Bash(pip install *)",
+      "Bash(pip freeze*)",
+      "Bash(uv *)",
+      "Bash(pytest*)",
+      "Bash(python -m pytest*)",
+      "Bash(python -m *)",
+      "Bash(uvicorn *)",
+      "Bash(docker compose *)",
+      "Bash(docker build *)",
+      "Bash(docker ps*)",
+      "Bash(docker logs*)",
+      "Bash(terraform plan*)",
+      "Bash(terraform validate*)",
+      "Bash(terraform fmt*)",
+      "Bash(terraform init*)",
+      "Bash(kubectl get *)",
+      "Bash(kubectl describe *)",
+      "Bash(kubectl logs *)",
+      "Bash(kubectl apply --dry-run*)",
+      "Bash(helm template *)",
+      "Bash(helm lint *)",
+      "Bash(eslint *)",
+      "Bash(prettier *)",
+      "Bash(tsc *)",
+      "Bash(turbo run *)",
+      "Bash(playwright test*)",
+      "Bash(cypher-shell *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(find *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(echo *)",
+      "Bash(curl *)",
+      "Bash(jq *)",
+      "Edit",
+      "Write"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(rm -r /*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git checkout -- .)",
+      "Bash(git branch -D *)",
+      "Bash(terraform apply*)",
+      "Bash(terraform destroy*)",
+      "Bash(docker system prune*)",
+      "Bash(kubectl delete *)",
+      "Bash(helm uninstall *)",
+      "Bash(DROP TABLE*)",
+      "Bash(DROP DATABASE*)",
+      "Bash(TRUNCATE *)",
+      "Bash(MATCH * DETACH DELETE*)",
+      "Bash(chmod 777*)",
+      "Bash(sudo *)",
+      "Bash(pkill *)",
+      "Bash(kill -9 *)"
+    ],
+    "ask": [
+      "Bash(rm *)",
+      "Bash(docker compose down*)",
+      "Bash(docker compose up*)",
+      "Bash(git merge*)",
+      "Bash(terraform apply -auto-approve*)",
+      "Bash(kubectl apply *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat | \"$HOME\"/.claude/hooks/pre-tool-log.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-format.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check whether the user corrected Claude during this conversation. A correction is when the user pointed out a mistake, told Claude to do something differently, or said something was wrong. If corrections were found, respond with {\"ok\": false, \"reason\": \"Before finishing, capture these learnings by running /learn: [list each correction briefly].\"}. If there were no corrections, respond with {\"ok\": true}. Only flag genuine corrections, not normal follow-up requests."
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "CLAUDE_OUTPUT_STYLE": "explanatory"
+  },
+  "spinnerVerbs": {
+    "mode": "append",
+    "verbs": [
+      "Traversing graph",
+      "Querying Cypher",
+      "Extracting arguments",
+      "Syncing from Notion",
+      "Architecting",
+      "Composing",
+      "Refactoring",
+      "Investigating",
+      "Validating",
+      "Engineering",
+      "Optimising"
+    ]
+  }
+}

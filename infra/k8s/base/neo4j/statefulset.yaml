@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: neo4j
+  namespace: valliance-graph
+  labels:
+    app.kubernetes.io/name: neo4j
+    app.kubernetes.io/part-of: valliance-graph
+spec:
+  serviceName: neo4j
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: neo4j
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: neo4j
+        app.kubernetes.io/part-of: valliance-graph
+    spec:
+      containers:
+        - name: neo4j
+          image: neo4j:5-community
+          ports:
+            - containerPort: 7474
+              name: http
+              protocol: TCP
+            - containerPort: 7687
+              name: bolt
+              protocol: TCP
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          livenessProbe:
+            tcpSocket:
+              port: 7687
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: 7687
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+          env:
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: neo4j-auth
+            - name: NEO4J_PLUGINS
+              value: '["apoc"]'
+            - name: NEO4J_dbms_security_procedures_unrestricted
+              value: "apoc.*"
+          volumeMounts:
+            - name: neo4j-data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: neo4j-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi

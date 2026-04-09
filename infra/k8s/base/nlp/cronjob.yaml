@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nlp-pipeline
+  namespace: valliance-graph
+  labels:
+    app.kubernetes.io/name: nlp
+    app.kubernetes.io/part-of: valliance-graph
+spec:
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  activeDeadlineSeconds: 1800
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1800
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: nlp
+            app.kubernetes.io/part-of: valliance-graph
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: nlp
+              image: ACR_LOGIN_SERVER/valliance-graph-nlp:latest
+              resources:
+                requests:
+                  memory: "1Gi"
+                  cpu: "500m"
+                limits:
+                  memory: "2Gi"
+                  cpu: "1000m"
+              env:
+                - name: NEO4J_URI
+                  value: "bolt://neo4j.valliance-graph.svc.cluster.local:7687"
+                - name: NEO4J_USER
+                  value: "neo4j"
+                - name: NEO4J_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: app-secrets
+                      key: neo4j-password
+                - name: ANTHROPIC_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: app-secrets
+                      key: anthropic-api-key

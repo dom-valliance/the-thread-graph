@@ -1,0 +1,44 @@
+[
+  {
+    "text": "AI agents can process due diligence documents significantly faster than human analysts, completing 400 documents in two hours versus three to four days",
+    "sentiment": "supports",
+    "strength": "strong",
+    "speaker": "Marcus Webb",
+    "relationship_type": "SUPPORTS"
+  },
+  {
+    "text": "The agentic system achieved 94% accuracy on material findings and identified additional items missed by the human team",
+    "sentiment": "supports",
+    "strength": "strong",
+    "speaker": "Marcus Webb",
+    "relationship_type": "SUPPORTS"
+  },
+  {
+    "text": "A 6% miss rate in due diligence is unacceptable because a single missed liability clause can invalidate the entire economic model",
+    "sentiment": "challenges",
+    "strength": "moderate",
+    "speaker": "Priya Patel",
+    "relationship_type": "CHALLENGES"
+  },
+  {
+    "text": "AI agents should serve as an augmentation layer for first-pass extraction, with senior analysts performing verification, rather than replacing human review entirely",
+    "sentiment": "neutral",
+    "strength": "strong",
+    "speaker": "Marcus Webb",
+    "relationship_type": "REFINES"
+  },
+  {
+    "text": "Value-based pricing on deal complexity and turnaround time can deliver 30% fee reduction to clients while improving margins by 15%",
+    "sentiment": "supports",
+    "strength": "moderate",
+    "speaker": "Priya Patel",
+    "relationship_type": "EXTENDS"
+  },
+  {
+    "text": "Competitive pressure from McKinsey Digital and Bain necessitates moving on AI-assisted due diligence within Q2 to maintain first-mover advantage",
+    "sentiment": "supports",
+    "strength": "moderate",
+    "speaker": "Marcus Webb",
+    "relationship_type": "SUPPORTS"
+  }
+]

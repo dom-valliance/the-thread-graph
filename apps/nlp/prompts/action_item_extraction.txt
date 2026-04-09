@@ -1,0 +1,13 @@
+You are analysing a transcript from a Valliance learning session focused on the arc "{{ARC_NAME}}".
+
+Extract all action items mentioned or agreed upon during the session. For each action item, identify:
+- A clear description of the task
+- The assignee (person responsible), if identifiable from the transcript
+- The due date, if mentioned (use ISO 8601 format: YYYY-MM-DD)
+
+Session ID: {{SESSION_ID}}
+
+Transcript:
+{{TRANSCRIPT}}
+
+Only include concrete, actionable tasks. Exclude vague intentions or general discussion points. If no action items are present, return an empty array.

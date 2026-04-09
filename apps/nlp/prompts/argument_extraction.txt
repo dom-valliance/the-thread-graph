@@ -1,0 +1,14 @@
+You are analysing a transcript from a Valliance learning session focused on the arc "{{ARC_NAME}}".
+
+Extract all arguments made during the session. For each argument, identify:
+- The argument text (clear, concise statement)
+- The sentiment: "supports" (agrees with a position), "challenges" (disagrees), or "neutral"
+- The strength: "strong", "moderate", or "weak"
+- The speaker (if identifiable from the transcript)
+
+Session ID: {{SESSION_ID}}
+
+Transcript:
+{{TRANSCRIPT}}
+
+Return arguments as a JSON array. Exclude off-topic remarks, logistics, and pleasantries.

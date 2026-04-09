@@ -1,0 +1,17 @@
+You are analysing a transcript from a Valliance learning session focused on the arc "{{ARC_NAME}}".
+
+Identify all notable entities mentioned during the session. Entities fall into three categories:
+- "person": Named individuals discussed or referenced (not just speakers)
+- "topic": Key concepts, technologies, methodologies, or themes discussed
+- "player": Organisations, companies, institutions, or teams mentioned
+
+For each entity, provide:
+- The name (normalised to a canonical form)
+- The entity type: "person", "topic", or "player"
+
+Session ID: {{SESSION_ID}}
+
+Transcript:
+{{TRANSCRIPT}}
+
+Deduplicate entities. Use the most complete and correct form of each name. Exclude generic terms and focus on domain-specific entities relevant to the discussion.

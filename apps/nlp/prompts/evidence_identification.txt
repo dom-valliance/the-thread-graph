@@ -1,0 +1,19 @@
+You are analysing a transcript from a Valliance learning session focused on the arc "{{ARC_NAME}}".
+
+Identify all evidence cited or referenced during the session. Evidence includes:
+- Citations of papers, articles, or books
+- Anecdotes or personal experiences used to support a point
+- Data points, statistics, or metrics
+- Expert opinions or authoritative references
+- Case studies or real-world examples
+
+For each piece of evidence, identify:
+- The evidence text (what was stated or referenced)
+- The type: "citation", "anecdote", "data_point", "expert_opinion", or "case_study"
+
+Session ID: {{SESSION_ID}}
+
+Transcript:
+{{TRANSCRIPT}}
+
+Focus on substantive evidence that supports or challenges positions. Exclude casual mentions and off-topic references.

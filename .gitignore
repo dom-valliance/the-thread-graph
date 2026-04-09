@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Build
+.next/
+dist/
+build/
+*.js.map
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+crash.log
+
+# Docker
+docker-compose.override.yml
+
+# Test
+coverage/
+htmlcov/
+.pytest_cache/
+.coverage
+
+# Neo4j local data
+neo4j-data/
+
+# Claude notes (committed, but not secrets)
+# .claude/notes/ is tracked

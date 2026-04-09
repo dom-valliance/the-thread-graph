@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: valliance-graph
+
+resources:
+  - namespace.yaml
+  - secrets.yaml
+  - ingress.yaml
+  - web/deployment.yaml
+  - web/service.yaml
+  - web/hpa.yaml
+  - api/deployment.yaml
+  - api/service.yaml
+  - api/hpa.yaml
+  - neo4j/statefulset.yaml
+  - neo4j/service.yaml
+  - neo4j/pvc.yaml
+  - nlp/cronjob.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize

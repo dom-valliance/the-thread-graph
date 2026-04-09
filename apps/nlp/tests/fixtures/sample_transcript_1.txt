@@ -1,0 +1,31 @@
+Session: AI Agents in Consulting - Practical Applications
+Date: 2026-03-15
+Participants: Sarah Chen, Marcus Webb, Priya Patel
+
+Sarah: Right, let's get into it. We've been exploring how AI agents can reshape consulting delivery, specifically within the due diligence workflow. Marcus, you ran the pilot last month. What did you find?
+
+Marcus: The results were encouraging but nuanced. We deployed an agentic system to handle the initial document review phase of a mid-market acquisition. It processed roughly 400 documents in about two hours, which would normally take a junior analyst three to four days.
+
+Priya: That's impressive on speed, but what about accuracy? We've seen plenty of demos that look good on throughput but miss critical clauses.
+
+Marcus: Fair point. We ran a blind comparison against the manual review. The agent caught 94% of the material findings the human team identified. It also flagged twelve additional items the team had missed, three of which were genuinely material.
+
+Sarah: So it's not just faster, it's potentially more thorough on certain dimensions. That aligns with what Deloitte published in their January report on AI-augmented due diligence. They saw similar patterns with their internal tooling.
+
+Priya: I want to push back slightly. The 6% miss rate concerns me. In due diligence, a single missed liability clause can invalidate the entire economic model. We need to think about this as an augmentation layer, not a replacement.
+
+Marcus: Completely agree. The architecture we're proposing uses the agent for first-pass extraction and flagging, with a senior analyst doing the verification pass. It changes the analyst's role from reader to reviewer.
+
+Sarah: That's a good framing. Let's talk about the commercial model. If we're reducing the junior analyst hours by 60-70%, how do we price this?
+
+Priya: We've been modelling a value-based pricing approach. Instead of billing hours, we price on deal complexity and turnaround time. Our analysis shows we can offer a 30% fee reduction to clients while improving our margins by 15%.
+
+Marcus: We should also consider the competitive dynamics. McKinsey Digital has already announced a similar offering. Bain is reportedly building one. If we don't move on this within Q2, we lose first-mover advantage in our segment.
+
+Sarah: Agreed. Action items then. Marcus, can you document the pilot findings in a formal write-up by end of next week? Priya, let's get the pricing model reviewed by finance before the April board meeting. I'll set up a session with the legal team to address the liability questions around AI-assisted due diligence.
+
+Priya: I'll also reach out to our contact at Anthropic to discuss enterprise deployment patterns. They've been helpful on the guardrails front.
+
+Marcus: One more thing. We should capture the evaluation framework we used in the pilot. It could become a reusable asset for future AI capability assessments.
+
+Sarah: Good call. Let's wrap there.

@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: valliance-graph
+  labels:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: valliance-graph
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api
+        app.kubernetes.io/part-of: valliance-graph
+    spec:
+      containers:
+        - name: api
+          image: ACR_LOGIN_SERVER/valliance-graph-api:latest
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          env:
+            - name: NEO4J_URI
+              value: "bolt://neo4j.valliance-graph.svc.cluster.local:7687"
+            - name: NEO4J_USER
+              value: "neo4j"
+            - name: NEO4J_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: neo4j-password
+            - name: NOTION_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: notion-api-key
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: anthropic-api-key
