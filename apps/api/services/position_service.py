@@ -5,6 +5,9 @@ from models.position import (
     ArgumentMapResponse,
     ArgumentSummary,
     EvidenceChainItem,
+    EvidenceTrailItem,
+    EvidenceTrailBookmark,
+    EvidenceTrailResponse,
     ObjectionPair,
     PositionDetail,
     PositionResponse,
@@ -65,6 +68,45 @@ class PositionService:
             challenging=[ArgumentSummary(**a) for a in row["challenging"]],
             steelman=[SteelmanItem(**s) for s in row["steelman"]],
             objection_pairs=[ObjectionPair(**o) for o in row["objection_pairs"]],
+        )
+
+    async def get_evidence_trail(
+        self, position_id: str
+    ) -> EvidenceTrailResponse:
+        result = await self._repo.get_evidence_trail(position_id)
+        if result is None:
+            raise NotFoundError(f"Position {position_id} not found")
+
+        evidence_items: list[EvidenceTrailItem] = []
+        unsourced_count = 0
+        bridge_bookmark_ids: set[str] = set()
+
+        for ev in result["evidence"]:
+            source_bookmark = None
+            if ev.get("source_bookmark") is not None:
+                sb = ev["source_bookmark"]
+                source_bookmark = EvidenceTrailBookmark(**sb)
+                arc_names = sb.get("arc_names", [])
+                if len(arc_names) > 1:
+                    bridge_bookmark_ids.add(sb["notion_id"])
+            else:
+                unsourced_count += 1
+
+            evidence_items.append(
+                EvidenceTrailItem(
+                    id=ev["id"],
+                    text=ev["text"],
+                    type=ev["type"],
+                    source_bookmark=source_bookmark,
+                )
+            )
+
+        return EvidenceTrailResponse(
+            position_id=result["position_id"],
+            position_text=result["position_text"],
+            evidence=evidence_items,
+            unsourced_count=unsourced_count,
+            bridge_bookmark_count=len(bridge_bookmark_ids),
         )
 
     async def get_changes_since_lock(

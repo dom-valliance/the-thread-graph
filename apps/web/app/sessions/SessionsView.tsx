@@ -14,7 +14,7 @@ export default function SessionsView() {
   const dateTo = searchParams.get('date_to') ?? undefined;
 
   const { data: sessions, isLoading } = useSessions({
-    theme: arc ?? undefined,
+    arc: arc ?? undefined,
     person,
     dateFrom,
     dateTo,

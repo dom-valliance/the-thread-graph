@@ -63,6 +63,80 @@ class EvidenceRepository(BaseRepository):
             return None
         return serialise_record(dict(records[0]["evidence"]))
 
+    async def create_evidence(
+        self, data: dict[str, object]
+    ) -> dict[str, object] | None:
+        """Create a single evidence node linked to a position.
+
+        Optionally links to a source bookmark via SOURCED_FROM.
+        """
+        query = """
+            MATCH (p:Position {id: $position_id})
+            CREATE (e:Evidence {
+                id: $id,
+                text: $text,
+                type: $type,
+                created_at: datetime(),
+                updated_at: datetime()
+            })
+            CREATE (e)-[:SUPPORTS]->(p)
+            WITH e
+            OPTIONAL MATCH (b:Bookmark {notion_id: $source_bookmark_id})
+            FOREACH (_ IN CASE WHEN b IS NOT NULL THEN [1] ELSE [] END |
+                CREATE (e)-[:SOURCED_FROM]->(b)
+            )
+            RETURN e {
+                .id, .text, .type, .created_at, .updated_at,
+                position_id: $position_id,
+                source_id: $source_bookmark_id
+            } AS evidence
+        """
+        records = await self._write_and_return(query, data)
+        if not records:
+            return None
+        return serialise_record(dict(records[0]["evidence"]))
+
+    async def update_evidence(
+        self, evidence_id: str, data: dict[str, object]
+    ) -> dict[str, object] | None:
+        """Update evidence text, type, and optionally re-link source bookmark."""
+        query = """
+            MATCH (e:Evidence {id: $id})
+            SET e.text = $text, e.type = $type, e.updated_at = datetime()
+            WITH e
+            OPTIONAL MATCH (e)-[old_source:SOURCED_FROM]->()
+            DELETE old_source
+            WITH e
+            OPTIONAL MATCH (b:Bookmark {notion_id: $source_bookmark_id})
+            FOREACH (_ IN CASE WHEN b IS NOT NULL THEN [1] ELSE [] END |
+                CREATE (e)-[:SOURCED_FROM]->(b)
+            )
+            WITH e
+            OPTIONAL MATCH (e)-[:SUPPORTS]->(p:Position)
+            OPTIONAL MATCH (e)-[:SOURCED_FROM]->(b2:Bookmark)
+            RETURN e {
+                .id, .text, .type, .created_at, .updated_at,
+                source_id: b2.id,
+                source_title: b2.title,
+                position_id: p.id
+            } AS evidence
+        """
+        records = await self._write_and_return(
+            query, {"id": evidence_id, **data}
+        )
+        if not records:
+            return None
+        return serialise_record(dict(records[0]["evidence"]))
+
+    async def delete_evidence(self, evidence_id: str) -> bool:
+        """Delete an evidence node and its relationships."""
+        query = """
+            MATCH (e:Evidence {id: $id})
+            DETACH DELETE e
+        """
+        summary = await self._write(query, {"id": evidence_id})
+        return summary.counters.nodes_deleted > 0
+
     async def batch_create_evidence(
         self, evidence_list: list[dict[str, object]]
     ) -> int:

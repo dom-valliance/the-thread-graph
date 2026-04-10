@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from uuid import uuid4
+
 from core.exceptions import NotFoundError
-from models.evidence import EvidenceResponse
+from models.evidence import EvidenceCreate, EvidenceResponse, EvidenceUpdate
 from repositories.evidence_repository import EvidenceRepository
 
 
@@ -25,6 +27,41 @@ class EvidenceService:
         if row is None:
             raise NotFoundError(f"Evidence {evidence_id} not found")
         return EvidenceResponse(**row)
+
+    async def create_evidence(
+        self, data: EvidenceCreate
+    ) -> EvidenceResponse:
+        params = {
+            "id": str(uuid4()),
+            "text": data.text,
+            "type": data.type,
+            "position_id": data.position_id,
+            "source_bookmark_id": data.source_bookmark_id,
+        }
+        row = await self._repo.create_evidence(params)
+        if row is None:
+            raise NotFoundError(
+                f"Position '{data.position_id}' not found"
+            )
+        return EvidenceResponse(**row)
+
+    async def update_evidence(
+        self, evidence_id: str, data: EvidenceUpdate
+    ) -> EvidenceResponse:
+        params = {
+            "text": data.text,
+            "type": data.type,
+            "source_bookmark_id": data.source_bookmark_id,
+        }
+        row = await self._repo.update_evidence(evidence_id, params)
+        if row is None:
+            raise NotFoundError(f"Evidence '{evidence_id}' not found")
+        return EvidenceResponse(**row)
+
+    async def delete_evidence(self, evidence_id: str) -> None:
+        deleted = await self._repo.delete_evidence(evidence_id)
+        if not deleted:
+            raise NotFoundError(f"Evidence '{evidence_id}' not found")
 
     async def batch_create_evidence(
         self, evidence_list: list[dict[str, object]]

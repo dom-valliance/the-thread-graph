@@ -165,6 +165,8 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 - Pydantic v2 uses `model_validate` not `parse_obj`. The v1 API is removed.
 - Notion property types cannot be inferred from names. Always log `prop.get("type")` on first record before writing extraction logic. "Valliance Themes" is a relation, not a select. "* Theme" is the actual select. See `.claude/notes/notion-sync.md` for the full mapping.
 - Sync transformer output field names must exactly match the target Pydantic model. Mismatches are silent (Pydantic uses defaults for missing fields, ignores extras).
+- When creating a paginated or filtered variant of an existing Cypher query, diff the RETURN clause field-by-field against the original. Missing fields cause silent `undefined` values that crash the frontend. Use optional chaining (`?.`) on all array property access in components consuming API data.
+- Theme and Arc are distinct concepts. Theme (`HAS_THEME`) is a Notion classification label. Arc (`BELONGS_TO_ARC`) is a structural Thread curriculum category. When a feature needs arc alignment, use `BELONGS_TO_ARC`, not `HAS_THEME`.
 
 ## Memory Protocol
 

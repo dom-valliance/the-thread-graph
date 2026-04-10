@@ -6,6 +6,7 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   size: number;
   colour: string;
   data: unknown;
+  type?: 'arc' | 'bookmark' | 'more' | 'position' | 'evidence';
 }
 
 export interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {

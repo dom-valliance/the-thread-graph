@@ -45,6 +45,11 @@ class SyncRepository(BaseRepository):
                 ON CREATE SET th.created_at = datetime(), th.updated_at = datetime()
                 MERGE (b)-[:HAS_THEME]->(th)
             )
+            FOREACH (arc_name IN item.arc_bucket_names |
+                MERGE (a:Arc {name: arc_name})
+                ON CREATE SET a.created_at = datetime(), a.updated_at = datetime()
+                MERGE (b)-[:BELONGS_TO_ARC]->(a)
+            )
             RETURN
                 sum(CASE WHEN b.created_at = b.updated_at THEN 1 ELSE 0 END) AS created_count,
                 sum(CASE WHEN b.created_at <> b.updated_at THEN 1 ELSE 0 END) AS updated_count

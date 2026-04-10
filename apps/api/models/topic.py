@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class TopicResponse(BaseModel):
     name: str
     bookmark_count: int = 0
-    primary_theme: str | None = None
+    primary_arc: str | None = None
     created_at: str
     updated_at: str
 

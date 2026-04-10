@@ -139,6 +139,10 @@ async def sync_database(
             break
         cursor = response.get("next_cursor")
 
+        # Pace requests when LLM enrichment is active to avoid 529 overload errors.
+        if enrich is not None:
+            await asyncio.sleep(1.0)
+
     if latest_timestamp is not None and not dry_run:
         state.update_last_sync(db_id, latest_timestamp)
 
@@ -176,7 +180,7 @@ async def run_sync(db_target: str, dry_run: bool, full: bool = False) -> None:
     notion_client = RateLimitedNotionClient(notion_api_key)
     api_client = httpx.AsyncClient(
         base_url=f"{api_base_url}/api/v1",
-        timeout=30.0,
+        timeout=120.0,
     )
     state = SyncState()
 
@@ -199,7 +203,10 @@ async def run_sync(db_target: str, dry_run: bool, full: bool = False) -> None:
             if anthropic_key:
                 known_themes = await _get_known_themes(api_client)
                 classifier = ThemeClassifier(
-                    anthropic.AsyncAnthropic(api_key=anthropic_key),
+                    anthropic.AsyncAnthropic(
+                        api_key=anthropic_key,
+                        max_retries=5,
+                    ),
                     known_themes=known_themes,
                 )
                 enrich = classifier.classify_batch

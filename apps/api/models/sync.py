@@ -16,6 +16,7 @@ class BookmarkSyncRequest(BaseModel):
     date_added: str | None = None
     topic_names: list[str] = []
     theme_name: str | None = None
+    arc_bucket_names: list[str] = []
 
 
 class SessionSyncRequest(BaseModel):

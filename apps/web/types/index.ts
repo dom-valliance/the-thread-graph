@@ -2,7 +2,7 @@ export type { ApiResponse, PaginatedResponse, ErrorResponse } from './api';
 export type {
   Arc,
   ArcDetail,
-  ThemeBridge,
+  ArcBridge,
   Bookmark,
   Session,
   Topic,

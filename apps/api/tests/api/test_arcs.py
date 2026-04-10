@@ -26,8 +26,8 @@ _ARC_BASE = {
 }
 
 _BRIDGE_ROW = {
-    "source_theme_name": "AI Governance",
-    "target_theme_name": "Ethics",
+    "source_arc_name": "AI Governance",
+    "target_arc_name": "Ethics",
     "shared_topics": 3,
 }
 
@@ -125,5 +125,118 @@ async def test_get_bridges_returns_200(
     assert resp.status_code == 200
     body = resp.json()
     assert body["meta"]["count"] == 1
-    assert body["data"][0]["source_theme_name"] == "AI Governance"
+    assert body["data"][0]["source_arc_name"] == "AI Governance"
     assert body["data"][0]["shared_topics"] == 3
+
+
+# ---------------------------------------------------------------------------
+# Tests: GET /api/v1/arcs/{arc_name}/bookmarks
+# ---------------------------------------------------------------------------
+
+_BOOKMARK_ROW = {
+    "notion_id": "bk-1",
+    "title": "Test Bookmark",
+    "source": "web",
+    "url": "https://example.com",
+    "ai_summary": None,
+    "valliance_viewpoint": None,
+    "edge_or_foundational": "edge",
+    "focus": None,
+    "date_added": "2026-01-10",
+    "created_at": "2026-01-10T00:00:00Z",
+    "updated_at": "2026-01-10T00:00:00Z",
+    "topic_names": ["AI"],
+}
+
+
+async def test_get_arc_bookmarks_returns_200_with_pagination(
+    client: httpx.AsyncClient,
+) -> None:
+    """GET /api/v1/arcs/{name}/bookmarks returns paginated bookmarks."""
+    arc_with_one = {**_ARC_BASE, "bookmark_count": 1}
+    with _patch_repo(
+        get_arc=arc_with_one,
+        get_arc_bookmarks_paginated=[_BOOKMARK_ROW],
+    ):
+        resp = await client.get(
+            "/api/v1/arcs/AI%20Governance/bookmarks?offset=0&limit=10"
+        )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["data"]) == 1
+    assert body["data"][0]["notion_id"] == "bk-1"
+    assert body["meta"]["has_more"] is False
+
+
+async def test_get_arc_bookmarks_returns_has_more_true(
+    client: httpx.AsyncClient,
+) -> None:
+    """has_more is True when more bookmarks exist beyond the page."""
+    arc_many = {**_ARC_BASE, "bookmark_count": 25}
+    bookmarks = [
+        {**_BOOKMARK_ROW, "notion_id": f"bk-{i}"} for i in range(10)
+    ]
+    with _patch_repo(
+        get_arc=arc_many,
+        get_arc_bookmarks_paginated=bookmarks,
+    ):
+        resp = await client.get(
+            "/api/v1/arcs/AI%20Governance/bookmarks?offset=0&limit=10"
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["meta"]["has_more"] is True
+
+
+async def test_get_arc_bookmarks_returns_404_for_missing_arc(
+    client: httpx.AsyncClient,
+) -> None:
+    """GET /api/v1/arcs/Nonexistent/bookmarks returns 404."""
+    with _patch_repo(get_arc=None):
+        resp = await client.get("/api/v1/arcs/Nonexistent/bookmarks")
+
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Tests: POST /api/v1/arcs/{arc_name}/bookmarks/edges
+# ---------------------------------------------------------------------------
+
+_EDGE_ROW = {
+    "source_notion_id": "bk-1",
+    "target_notion_id": "bk-2",
+    "shared_topics": 2,
+    "shared_topic_names": ["AI", "Ethics"],
+}
+
+
+async def test_post_bookmark_edges_returns_200(
+    client: httpx.AsyncClient,
+) -> None:
+    """POST bookmark edges returns edges for the given notion_ids."""
+    with _patch_repo(get_bookmark_edges=[_EDGE_ROW]):
+        resp = await client.post(
+            "/api/v1/arcs/AI%20Governance/bookmarks/edges",
+            json={"notion_ids": ["bk-1", "bk-2"]},
+        )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["data"]) == 1
+    assert body["data"][0]["source_notion_id"] == "bk-1"
+    assert body["data"][0]["shared_topics"] == 2
+
+
+async def test_post_bookmark_edges_returns_empty_for_single_id(
+    client: httpx.AsyncClient,
+) -> None:
+    """Edges endpoint returns empty list when fewer than 2 notion_ids given."""
+    with _patch_repo(get_bookmark_edges=[]):
+        resp = await client.post(
+            "/api/v1/arcs/AI%20Governance/bookmarks/edges",
+            json={"notion_ids": ["bk-1"]},
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["data"] == []

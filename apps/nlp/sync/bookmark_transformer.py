@@ -46,6 +46,9 @@ class BookmarkTransformer:
             "date_added": self._extract_date(properties.get("Date Added", {})),
             "topic_names": topic_names,
             "theme_name": theme,
+            "arc_bucket_names": self._extract_multi_select(
+                properties.get("Arc Bucket", {})
+            ),
             "theme_page_ids": self._extract_relation_ids(
                 properties.get("Valliance Themes", {})
             ),

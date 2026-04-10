@@ -6,7 +6,7 @@ import type { Topic, TopicCoOccurrence } from '@/types/entities';
 import type { GraphNode } from '@/types/graph';
 import { useContainerSize } from '@/lib/hooks/use-container-size';
 
-const THEME_COLOURS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+const ARC_COLOURS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
 interface TopicNode extends GraphNode {
   data: Topic;
@@ -22,13 +22,13 @@ interface TopicGalaxyProps {
   onTopicSelect?: (topic: Topic) => void;
 }
 
-function themeColour(theme: string | null | undefined, index: number): string {
-  if (!theme) return THEME_COLOURS[index % THEME_COLOURS.length];
+function arcColour(arc: string | null | undefined, index: number): string {
+  if (!arc) return ARC_COLOURS[index % ARC_COLOURS.length];
   let hash = 0;
-  for (let i = 0; i < theme.length; i++) {
-    hash = theme.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < arc.length; i++) {
+    hash = arc.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return THEME_COLOURS[Math.abs(hash) % THEME_COLOURS.length];
+  return ARC_COLOURS[Math.abs(hash) % ARC_COLOURS.length];
 }
 
 function nodeRadius(topic: Topic): number {
@@ -41,7 +41,7 @@ function buildNodes(topics: Topic[]): TopicNode[] {
     id: topic.name,
     label: topic.name,
     size: nodeRadius(topic),
-    colour: themeColour(topic.primary_theme, index),
+    colour: arcColour(topic.primary_arc, index),
     data: topic,
   }));
 }
@@ -80,10 +80,10 @@ export default function TopicGalaxy({ topics, coOccurrences = [], onTopicSelect 
     const simulation = d3
       .forceSimulation<TopicNode>(nodes)
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('charge', d3.forceManyBody().strength(-120))
-      .force('collision', d3.forceCollide<TopicNode>().radius((d) => d.size + 6))
-      .force('x', d3.forceX(width / 2).strength(0.05))
-      .force('y', d3.forceY(height / 2).strength(0.05));
+      .force('charge', d3.forceManyBody().strength(-250))
+      .force('collision', d3.forceCollide<TopicNode>().radius((d) => d.size + 20))
+      .force('x', d3.forceX(width / 2).strength(0.04))
+      .force('y', d3.forceY(height / 2).strength(0.04));
 
     if (links.length > 0) {
       simulation.force(
@@ -91,7 +91,7 @@ export default function TopicGalaxy({ topics, coOccurrences = [], onTopicSelect 
         d3
           .forceLink<TopicNode, TopicLink>(links)
           .id((d) => d.id)
-          .distance(120),
+          .distance(200),
       );
     }
 
@@ -141,9 +141,9 @@ export default function TopicGalaxy({ topics, coOccurrences = [], onTopicSelect 
       })
       .on('mouseenter', (event, d) => {
         const bookmarks = d.data.bookmark_count ?? 0;
-        const theme = d.data.primary_theme ?? 'No theme';
+        const arc = d.data.primary_arc ?? 'No arc';
         tooltip
-          .html(`<strong>${d.label}</strong><br/>Theme: ${theme}<br/>${bookmarks} bookmark${bookmarks === 1 ? '' : 's'}`)
+          .html(`<strong>${d.label}</strong><br/>Arc: ${arc}<br/>${bookmarks} bookmark${bookmarks === 1 ? '' : 's'}`)
           .style('left', `${event.pageX + 12}px`)
           .style('top', `${event.pageY - 10}px`)
           .transition()

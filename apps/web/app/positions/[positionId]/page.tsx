@@ -1,6 +1,7 @@
 import { apiGet } from '@/lib/api-client';
 import type { Argument } from '@/types/entities';
 import ArgumentMap from '@/components/graph/ArgumentMap';
+import EvidenceTrail from '@/components/graph/EvidenceTrail';
 import Breadcrumbs from '@/components/layout/Breadcrumbs';
 
 interface PositionDetail {
@@ -46,6 +47,11 @@ export default async function PositionArgumentMapPage({ params }: PositionPagePr
           arguments={position.arguments}
         />
       </div>
+
+      <section className="mt-8">
+        <h3 className="mb-4 text-xl font-bold text-slate-900">Evidence Trail</h3>
+        <EvidenceTrail positionId={params.positionId} />
+      </section>
     </div>
   );
 }

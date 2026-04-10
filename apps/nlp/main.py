@@ -41,6 +41,7 @@ def build_processor(client: anthropic.AsyncAnthropic) -> TranscriptProcessor:
 async def run_single(session_id: str) -> None:
     anthropic_client = anthropic.AsyncAnthropic(
         api_key=os.environ["ANTHROPIC_API_KEY"],
+        max_retries=5,
     )
     api_client = ApiClient()
     processor = build_processor(anthropic_client)
@@ -80,6 +81,7 @@ async def run_single(session_id: str) -> None:
 async def run_batch() -> None:
     anthropic_client = anthropic.AsyncAnthropic(
         api_key=os.environ["ANTHROPIC_API_KEY"],
+        max_retries=5,
     )
     api_client = ApiClient()
     processor = build_processor(anthropic_client)

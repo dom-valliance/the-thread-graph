@@ -6,6 +6,8 @@ import { classNames } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { label: 'Arcs', href: '/arcs' },
+  { label: 'Bridges', href: '/bridges' },
+  { label: 'Objections', href: '/objections' },
   { label: 'Topics', href: '/topics' },
   { label: 'Sessions', href: '/sessions' },
   { label: 'Bookmarks', href: '/bookmarks' },

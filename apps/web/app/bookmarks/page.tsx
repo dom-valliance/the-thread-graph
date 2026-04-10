@@ -5,22 +5,24 @@ import Link from 'next/link';
 
 export const metadata = {
   title: 'Bookmarks | Valliance Graph',
-  description: 'Browse all synced bookmarks grouped by theme.',
+  description: 'Browse all synced bookmarks grouped by arc.',
 };
 
-function groupByTheme(bookmarks: Bookmark[]): Map<string, Bookmark[]> {
+function groupByArcBucket(bookmarks: Bookmark[]): Map<string, Bookmark[]> {
   const groups = new Map<string, Bookmark[]>();
   const ungrouped: Bookmark[] = [];
 
   for (const bookmark of bookmarks) {
-    const theme = bookmark.theme_name;
-    if (!theme) {
+    const arcs = bookmark.arc_bucket_names;
+    if (!arcs || arcs.length === 0) {
       ungrouped.push(bookmark);
       continue;
     }
-    const list = groups.get(theme) ?? [];
-    list.push(bookmark);
-    groups.set(theme, list);
+    for (const arc of arcs) {
+      const list = groups.get(arc) ?? [];
+      list.push(bookmark);
+      groups.set(arc, list);
+    }
   }
 
   const sorted = new Map<string, Bookmark[]>(
@@ -46,9 +48,9 @@ function BookmarkCard({ bookmark }: { bookmark: Bookmark }) {
           {bookmark.ai_summary && (
             <p className="mt-2 text-sm text-slate-600">{bookmark.ai_summary}</p>
           )}
-          {bookmark.arc_names?.length > 0 && (
+          {bookmark.arc_bucket_names?.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              {bookmark.arc_names?.map((arc) => (
+              {bookmark.arc_bucket_names?.map((arc) => (
                 <span
                   key={arc}
                   className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700"
@@ -107,7 +109,7 @@ async function fetchAllBookmarks(): Promise<Bookmark[]> {
 
 export default async function BookmarksPage() {
   const bookmarks = await fetchAllBookmarks();
-  const grouped = groupByTheme(bookmarks);
+  const grouped = groupByArcBucket(bookmarks);
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
@@ -115,7 +117,7 @@ export default async function BookmarksPage() {
       <h2 className="mb-4 text-2xl font-bold text-slate-900">Bookmarks</h2>
       <p className="mb-6 text-sm text-slate-500">
         {bookmarks.length} bookmark{bookmarks.length === 1 ? '' : 's'} synced from Notion,
-        grouped by theme.
+        grouped by arc.
       </p>
 
       {bookmarks.length === 0 ? (

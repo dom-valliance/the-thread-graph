@@ -45,15 +45,15 @@ class BookmarkRepository(BaseRepository):
             WITH b, collect(DISTINCT t.name) AS topic_names
             OPTIONAL MATCH (b)-[:HAS_THEME]->(th:Theme)
             WITH b, topic_names, th
-            OPTIONAL MATCH (b)-[:EVIDENCES]->(:Position)-[:LOCKED_IN]->(a:Arc)
-            WITH b, topic_names, th, collect(DISTINCT a.name) AS arc_names
+            OPTIONAL MATCH (b)-[:BELONGS_TO_ARC]->(a:Arc)
+            WITH b, topic_names, th, collect(DISTINCT a.name) AS arc_bucket_names
             RETURN b {{
                 .notion_id, .title, .source, .url, .ai_summary,
                 .valliance_viewpoint, .edge_or_foundational, .focus,
                 .time_consumption, .date_added, .created_at, .updated_at,
                 topic_names: topic_names,
                 theme_name: th.name,
-                arc_names: arc_names
+                arc_bucket_names: arc_bucket_names
             }} AS bookmark
             ORDER BY bookmark.notion_id
             LIMIT $limit

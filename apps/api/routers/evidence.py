@@ -5,7 +5,7 @@ from neo4j import AsyncDriver
 
 from core.dependencies import get_driver
 from models.common import ApiResponse
-from models.evidence import EvidenceResponse
+from models.evidence import EvidenceCreate, EvidenceResponse, EvidenceUpdate
 from repositories.evidence_repository import EvidenceRepository
 from services.evidence_service import EvidenceService
 
@@ -28,3 +28,33 @@ async def list_evidence(
         type=type,
     )
     return {"data": evidence, "meta": {"count": len(evidence)}}
+
+
+@router.post("", response_model=ApiResponse[EvidenceResponse], status_code=201)
+async def create_evidence(
+    body: EvidenceCreate,
+    service: EvidenceService = Depends(_get_service),
+) -> dict:
+    """Create a single evidence item linked to a position."""
+    evidence = await service.create_evidence(body)
+    return {"data": evidence}
+
+
+@router.put("/{evidence_id}", response_model=ApiResponse[EvidenceResponse])
+async def update_evidence(
+    evidence_id: str,
+    body: EvidenceUpdate,
+    service: EvidenceService = Depends(_get_service),
+) -> dict:
+    """Update evidence text, type, and source bookmark."""
+    evidence = await service.update_evidence(evidence_id, body)
+    return {"data": evidence}
+
+
+@router.delete("/{evidence_id}", status_code=204)
+async def delete_evidence(
+    evidence_id: str,
+    service: EvidenceService = Depends(_get_service),
+) -> None:
+    """Delete an evidence item."""
+    await service.delete_evidence(evidence_id)

@@ -16,7 +16,7 @@ class BookmarkResponse(BaseModel):
     date_added: str | None = None
     topic_names: list[str] = []
     theme_name: str | None = None
-    arc_names: list[str] = []
+    arc_bucket_names: list[str] = []
     created_at: str
     updated_at: str
 
@@ -34,6 +34,7 @@ class BookmarkCreate(BaseModel):
     date_added: str | None = None
     topic_names: list[str] = []
     theme_name: str | None = None
+    arc_bucket_names: list[str] = []
 
 
 class RelatedPosition(BaseModel):

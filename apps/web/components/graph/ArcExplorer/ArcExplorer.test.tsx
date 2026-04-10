@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import ArcExplorer from './index';
-import type { Arc, ThemeBridge } from '@/types/entities';
+import type { Arc, ArcBridge } from '@/types/entities';
 
 const MOCK_ARCS: Arc[] = [
   {
@@ -20,10 +20,10 @@ const MOCK_ARCS: Arc[] = [
   },
 ];
 
-const MOCK_BRIDGES: ThemeBridge[] = [
+const MOCK_BRIDGES: ArcBridge[] = [
   {
-    source_theme_name: 'Test Theme Alpha',
-    target_theme_name: 'Test Theme Beta',
+    source_arc_name: 'Test Theme Alpha',
+    target_arc_name: 'Test Theme Beta',
     shared_topics: 2,
   },
 ];
@@ -44,6 +44,6 @@ describe('ArcExplorer', () => {
   it('sets the aria label for accessibility', () => {
     const { container } = render(<ArcExplorer arcs={MOCK_ARCS} bridges={MOCK_BRIDGES} />);
     const svg = container.querySelector('svg');
-    expect(svg?.getAttribute('aria-label')).toBe('Theme explorer force-directed graph');
+    expect(svg?.getAttribute('aria-label')).toBe('Arc explorer force-directed graph');
   });
 });

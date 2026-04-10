@@ -12,3 +12,16 @@ class EvidenceResponse(BaseModel):
     position_id: str | None = None
     created_at: str
     updated_at: str
+
+
+class EvidenceCreate(BaseModel):
+    text: str
+    type: str
+    position_id: str
+    source_bookmark_id: str | None = None
+
+
+class EvidenceUpdate(BaseModel):
+    text: str
+    type: str
+    source_bookmark_id: str | None = None

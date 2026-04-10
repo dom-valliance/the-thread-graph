@@ -13,6 +13,7 @@ from routers import (
     arcs,
     arguments,
     bookmarks,
+    bridges,
     enrichment,
     evidence,
     health,
@@ -57,3 +58,4 @@ app.include_router(objections.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
 app.include_router(enrichment.router, prefix="/api/v1")
 app.include_router(sync.router, prefix="/api/v1")
+app.include_router(bridges.router, prefix="/api/v1")

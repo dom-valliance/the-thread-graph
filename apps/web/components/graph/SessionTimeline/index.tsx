@@ -16,11 +16,11 @@ interface SessionTimelineProps {
   onSessionSelect?: (session: Session) => void;
 }
 
-function themeColour(themeName: string | undefined, colourMap: Map<string, string>): string {
-  if (!themeName) return ARC_COLOURS.default;
-  if (colourMap.has(themeName)) return colourMap.get(themeName)!;
+function arcColour(arcName: string | undefined, colourMap: Map<string, string>): string {
+  if (!arcName) return ARC_COLOURS.default;
+  if (colourMap.has(arcName)) return colourMap.get(arcName)!;
   const index = colourMap.size % COLOUR_PALETTE.length;
-  colourMap.set(themeName, COLOUR_PALETTE[index]);
+  colourMap.set(arcName, COLOUR_PALETTE[index]);
   return COLOUR_PALETTE[index];
 }
 
@@ -101,7 +101,7 @@ export default function SessionTimeline({ sessions, onSessionSelect }: SessionTi
       .attr('x2', (d) => xScale(new Date(d.date)))
       .attr('y1', innerHeight / 2 - 20)
       .attr('y2', innerHeight / 2 + 20)
-      .attr('stroke', (d) => themeColour(d.theme_name, colourMap))
+      .attr('stroke', (d) => arcColour(d.theme_name, colourMap))
       .attr('stroke-width', 2)
       .attr('stroke-opacity', 0.7);
 
@@ -110,7 +110,7 @@ export default function SessionTimeline({ sessions, onSessionSelect }: SessionTi
       .attr('cx', (d) => xScale(new Date(d.date)))
       .attr('cy', innerHeight / 2)
       .attr('r', 6)
-      .attr('fill', (d) => themeColour(d.theme_name, colourMap))
+      .attr('fill', (d) => arcColour(d.theme_name, colourMap))
       .attr('stroke', '#fff')
       .attr('stroke-width', 2);
 

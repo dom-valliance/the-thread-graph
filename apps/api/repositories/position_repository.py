@@ -198,6 +198,51 @@ class PositionRepository(BaseRepository):
 
         return result
 
+    async def get_evidence_trail(
+        self, position_id: str
+    ) -> dict[str, object] | None:
+        """Get the evidence provenance trail for a position.
+
+        Returns the position with its full evidence chain, including
+        source bookmarks and their arc membership.
+        """
+        pos_query = """
+            MATCH (p:Position {id: $id})
+            RETURN p { .id, .text, .status } AS position
+        """
+        records = await self._read(pos_query, {"id": position_id})
+        if not records:
+            return None
+
+        position = serialise_record(dict(records[0]["position"]))
+
+        trail_query = """
+            MATCH (e:Evidence)-[:SUPPORTS]->(p:Position {id: $id})
+            OPTIONAL MATCH (e)-[:SOURCED_FROM]->(b:Bookmark)
+            OPTIONAL MATCH (b)-[:BELONGS_TO_ARC]->(a:Arc)
+            WITH e, b, collect(DISTINCT a.name) AS bookmark_arc_names
+            RETURN e {
+                .id, .text, .type,
+                source_bookmark: CASE WHEN b IS NOT NULL THEN b {
+                    .notion_id, .title, .url, .source,
+                    .edge_or_foundational, .ai_summary,
+                    arc_names: bookmark_arc_names
+                } ELSE null END
+            } AS evidence
+            ORDER BY e.created_at
+        """
+        trail_records = await self._read(trail_query, {"id": position_id})
+        evidence = [
+            serialise_record(dict(record["evidence"]))
+            for record in trail_records
+        ]
+
+        return {
+            "position_id": position["id"],
+            "position_text": position["text"],
+            "evidence": evidence,
+        }
+
     async def get_changes_since_lock(
         self, position_id: str
     ) -> dict[str, object] | None:

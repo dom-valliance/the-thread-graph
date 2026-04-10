@@ -33,6 +33,7 @@ The canonical property mapping for database `22d575346e48818ebf26d6c958efe16f`:
 | Summary | rich_text | ai_summary |
 | Valliance viewpoint | rich_text | valliance_viewpoint |
 | Date Added | date | date_added |
+| Arc Bucket | multi_select | arc_bucket_names |
 
 Other properties exist but are not currently mapped: AI Enhanced, Author, Status, Liked By, Promote for Discussion, etc.
 

@@ -5,19 +5,19 @@ from repositories.base import BaseRepository, serialise_record
 
 class TopicRepository(BaseRepository):
     async def list_topics(self) -> list[dict[str, object]]:
-        """List all topics with bookmark count and primary theme."""
+        """List all topics with bookmark count, primary arc, and primary theme."""
         query = """
             MATCH (t:Topic)
             OPTIONAL MATCH (t)<-[:TAGGED_WITH]-(b:Bookmark)
             WITH t, count(b) AS bookmark_count
-            OPTIONAL MATCH (t)<-[:TAGGED_WITH]-(b2:Bookmark)-[:HAS_THEME]->(th:Theme)
-            WITH t, bookmark_count, th.name AS theme, count(b2) AS theme_weight
-            ORDER BY theme_weight DESC
-            WITH t, bookmark_count, collect(theme)[0] AS primary_theme
+            OPTIONAL MATCH (t)<-[:TAGGED_WITH]-(b2:Bookmark)-[:BELONGS_TO_ARC]->(a:Arc)
+            WITH t, bookmark_count, a.name AS arc, count(b2) AS arc_weight
+            ORDER BY arc_weight DESC
+            WITH t, bookmark_count, collect(arc)[0] AS primary_arc
             RETURN t {
                 .name, .created_at, .updated_at,
                 bookmark_count: bookmark_count,
-                primary_theme: primary_theme
+                primary_arc: primary_arc
             } AS topic
             ORDER BY topic.bookmark_count DESC, topic.name
         """

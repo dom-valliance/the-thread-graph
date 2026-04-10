@@ -62,3 +62,28 @@ class ArgumentMapResponse(BaseModel):
     challenging: list[ArgumentSummary]
     steelman: list[SteelmanItem]
     objection_pairs: list[ObjectionPair]
+
+
+class EvidenceTrailBookmark(BaseModel):
+    notion_id: str
+    title: str
+    url: str | None = None
+    source: str | None = None
+    edge_or_foundational: str | None = None
+    ai_summary: str | None = None
+    arc_names: list[str] = []
+
+
+class EvidenceTrailItem(BaseModel):
+    id: str
+    text: str
+    type: str
+    source_bookmark: EvidenceTrailBookmark | None = None
+
+
+class EvidenceTrailResponse(BaseModel):
+    position_id: str
+    position_text: str
+    evidence: list[EvidenceTrailItem]
+    unsourced_count: int
+    bridge_bookmark_count: int
