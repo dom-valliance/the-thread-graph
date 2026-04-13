@@ -55,6 +55,39 @@ FOR (pl:Player) REQUIRE pl.name IS UNIQUE;
 CREATE CONSTRAINT proposition_name IF NOT EXISTS
 FOR (pr:Proposition) REQUIRE pr.name IS UNIQUE;
 
+CREATE CONSTRAINT cycle_id IF NOT EXISTS
+FOR (c:Cycle) REQUIRE c.id IS UNIQUE;
+
+CREATE CONSTRAINT scheduled_session_id IF NOT EXISTS
+FOR (ss:ScheduledSession) REQUIRE ss.id IS UNIQUE;
+
+CREATE CONSTRAINT brief_id IF NOT EXISTS
+FOR (b:ProblemLandscapeBrief) REQUIRE b.id IS UNIQUE;
+
+CREATE CONSTRAINT landscape_grid_id IF NOT EXISTS
+FOR (lg:LandscapeGrid) REQUIRE lg.id IS UNIQUE;
+
+CREATE CONSTRAINT landscape_grid_entry_id IF NOT EXISTS
+FOR (lge:LandscapeGridEntry) REQUIRE lge.id IS UNIQUE;
+
+CREATE CONSTRAINT live_fire_entry_id IF NOT EXISTS
+FOR (lf:LiveFireEntry) REQUIRE lf.id IS UNIQUE;
+
+CREATE CONSTRAINT flash_id IF NOT EXISTS
+FOR (f:Flash) REQUIRE f.id IS UNIQUE;
+
+CREATE CONSTRAINT forge_assignment_id IF NOT EXISTS
+FOR (fa:ForgeAssignment) REQUIRE fa.id IS UNIQUE;
+
+CREATE CONSTRAINT workshop_assignment_id IF NOT EXISTS
+FOR (wa:WorkshopAssignment) REQUIRE wa.id IS UNIQUE;
+
+CREATE CONSTRAINT reading_assignment_id IF NOT EXISTS
+FOR (ra:ReadingAssignment) REQUIRE ra.id IS UNIQUE;
+
+CREATE CONSTRAINT thread_prep_brief_id IF NOT EXISTS
+FOR (tpb:ThreadPrepBrief) REQUIRE tpb.id IS UNIQUE;
+
 // ---------------------------------------------------------------------------
 // Performance Indexes (7)
 // ---------------------------------------------------------------------------
@@ -79,6 +112,33 @@ FOR (ai:ActionItem) ON (ai.status);
 
 CREATE INDEX evidence_type IF NOT EXISTS
 FOR (e:Evidence) ON (e.type);
+
+CREATE INDEX cycle_status IF NOT EXISTS
+FOR (c:Cycle) ON (c.status);
+
+CREATE INDEX scheduled_session_status IF NOT EXISTS
+FOR (ss:ScheduledSession) ON (ss.status);
+
+CREATE INDEX scheduled_session_date IF NOT EXISTS
+FOR (ss:ScheduledSession) ON (ss.date);
+
+CREATE INDEX live_fire_date IF NOT EXISTS
+FOR (lf:LiveFireEntry) ON (lf.date);
+
+CREATE INDEX flash_status IF NOT EXISTS
+FOR (f:Flash) ON (f.status);
+
+CREATE INDEX evidence_vault_type IF NOT EXISTS
+FOR (e:Evidence) ON (e.vault_type);
+
+CREATE INDEX evidence_proposition IF NOT EXISTS
+FOR (e:Evidence) ON (e.proposition_mapping);
+
+CREATE INDEX forge_status IF NOT EXISTS
+FOR (fa:ForgeAssignment) ON (fa.status);
+
+CREATE INDEX forge_deadline IF NOT EXISTS
+FOR (fa:ForgeAssignment) ON (fa.deadline);
 
 // ---------------------------------------------------------------------------
 // Full-Text Indexes (3)

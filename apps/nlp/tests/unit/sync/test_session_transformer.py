@@ -7,37 +7,27 @@ def _make_notion_page(
     *,
     page_id: str = "session-001",
     title: str = "AI Policy Discussion",
-    transcript: str = "Sarah: Let us discuss the new AI policy framework.",
-    summary: str = "A discussion about AI governance.",
     date: str | None = "2026-03-20",
-    duration: int | None = 90,
-    relation_theme_ids: list[str] | None = None,
+    ai_viewpoint: str = "This discussion covers governance frameworks.",
+    bookmark_ids: list[str] | None = None,
     last_edited_time: str = "2026-04-01T12:00:00.000Z",
 ) -> dict:
     properties: dict = {
         "Name": {
             "type": "title",
-            "title": [{"plain_text": title}],
+            "title": [{"plain_text": title}] if title else [],
         },
-        "Transcript": {
-            "type": "rich_text",
-            "rich_text": [{"plain_text": transcript}] if transcript else [],
-        },
-        "Summary": {
-            "type": "rich_text",
-            "rich_text": [{"plain_text": summary}] if summary else [],
-        },
-        "Date": {
+        "Date Created": {
             "type": "date",
             "date": {"start": date} if date else None,
         },
-        "Duration": {
-            "type": "number",
-            "number": duration,
+        "AI Suggested Viewpoint": {
+            "type": "rich_text",
+            "rich_text": [{"plain_text": ai_viewpoint}] if ai_viewpoint else [],
         },
-        "Valliance Theme": {
+        "Bookmark": {
             "type": "relation",
-            "relation": [{"id": pid} for pid in (relation_theme_ids or [])],
+            "relation": [{"id": pid} for pid in (bookmark_ids or [])],
         },
     }
 
@@ -50,29 +40,34 @@ def _make_notion_page(
 
 class TestSessionTransformer:
     def test_transforms_full_page(self) -> None:
-        page = _make_notion_page()
+        page = _make_notion_page(bookmark_ids=["bk-001"])
         result = SessionTransformer().transform(page)
 
         assert result["notion_id"] == "session-001"
         assert result["title"] == "AI Policy Discussion"
-        assert result["transcript"] == "Sarah: Let us discuss the new AI policy framework."
-        assert result["summary"] == "A discussion about AI governance."
         assert result["date"] == "2026-03-20"
-        assert result["duration"] == 90
+        assert result["ai_suggested_viewpoint"] == "This discussion covers governance frameworks."
+        assert result["bookmark_notion_id"] == "bk-001"
         assert result["last_edited_time"] == "2026-04-01T12:00:00.000Z"
 
     def test_handles_missing_optional_properties(self) -> None:
-        page = _make_notion_page(date=None, duration=None)
+        page = _make_notion_page(date=None, ai_viewpoint="")
         result = SessionTransformer().transform(page)
 
         assert result["date"] is None
-        assert result["duration"] is None
+        assert result["ai_suggested_viewpoint"] == ""
 
-    def test_extracts_relation_ids(self) -> None:
-        page = _make_notion_page(relation_theme_ids=["theme-page-1", "theme-page-2"])
+    def test_bookmark_id_none_when_no_relation(self) -> None:
+        page = _make_notion_page()
         result = SessionTransformer().transform(page)
 
-        assert result["theme_page_ids"] == ["theme-page-1", "theme-page-2"]
+        assert result["bookmark_notion_id"] is None
+
+    def test_bookmark_id_picks_first_when_multiple(self) -> None:
+        page = _make_notion_page(bookmark_ids=["bk-001", "bk-002"])
+        result = SessionTransformer().transform(page)
+
+        assert result["bookmark_notion_id"] == "bk-001"
 
     def test_empty_title_returns_empty_string(self) -> None:
         page = _make_notion_page()
@@ -81,27 +76,12 @@ class TestSessionTransformer:
 
         assert result["title"] == ""
 
-    def test_empty_transcript_returns_empty_string(self) -> None:
-        page = _make_notion_page(transcript="")
-        page["properties"]["Transcript"] = {"type": "rich_text", "rich_text": []}
-        result = SessionTransformer().transform(page)
-
-        assert result["transcript"] == ""
-
-    def test_number_cast_to_int(self) -> None:
-        page = _make_notion_page(duration=45)
-        page["properties"]["Duration"]["number"] = 45.0
-        result = SessionTransformer().transform(page)
-
-        assert result["duration"] == 45
-        assert isinstance(result["duration"], int)
-
     def test_relation_ids_empty_when_not_relation_type(self) -> None:
         page = _make_notion_page()
-        page["properties"]["Valliance Theme"] = {"type": "rich_text", "rich_text": []}
+        page["properties"]["Bookmark"] = {"type": "rich_text", "rich_text": []}
         result = SessionTransformer().transform(page)
 
-        assert result["theme_page_ids"] == []
+        assert result["bookmark_notion_id"] is None
 
     def test_handles_completely_empty_properties(self) -> None:
         page = {"id": "empty-session", "properties": {}, "last_edited_time": "2026-04-01T00:00:00Z"}
@@ -109,6 +89,16 @@ class TestSessionTransformer:
 
         assert result["notion_id"] == "empty-session"
         assert result["title"] == ""
-        assert result["transcript"] == ""
         assert result["date"] is None
-        assert result["duration"] is None
+        assert result["ai_suggested_viewpoint"] == ""
+        assert result["bookmark_notion_id"] is None
+
+    def test_logs_property_keys_on_first_transform(self, caplog) -> None:
+        SessionTransformer._logged_keys = False
+        page = _make_notion_page()
+
+        import logging
+        with caplog.at_level(logging.INFO):
+            SessionTransformer().transform(page)
+
+        assert any("Session property" in record.message for record in caplog.records)

@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+# Resolve the project root .env regardless of working directory.
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_ENV_FILE = _PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
@@ -14,8 +20,9 @@ class Settings(BaseSettings):
     azure_ad_client_id: str = ""
     api_base_url: str = "http://localhost:8000"
     cors_origins: list[str] = ["http://localhost:3000"]
+    anthropic_api_key: str = ""
 
-    model_config = {"env_file": ".env"}
+    model_config = {"env_file": str(_ENV_FILE), "extra": "ignore"}
 
 
 settings = Settings()

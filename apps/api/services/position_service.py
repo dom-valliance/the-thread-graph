@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from core.exceptions import NotFoundError
+from uuid import uuid4
+
+from core.exceptions import ConflictError, NotFoundError, ValidationError
 from models.position import (
     ArgumentMapResponse,
     ArgumentSummary,
@@ -9,8 +11,13 @@ from models.position import (
     EvidenceTrailBookmark,
     EvidenceTrailResponse,
     ObjectionPair,
+    PositionCreate,
     PositionDetail,
+    PositionLock,
     PositionResponse,
+    PositionRevise,
+    PositionUpdate,
+    PositionVersionResponse,
     SteelmanItem,
 )
 from repositories.position_repository import PositionRepository
@@ -57,6 +64,93 @@ class PositionService:
                 ArgumentSummary(**a) for a in row["challenging_arguments"]
             ],
         )
+
+    async def create_position(self, data: PositionCreate) -> PositionResponse:
+        position_id = str(uuid4())
+        row = await self._repo.create_position({
+            "id": position_id,
+            "text": data.text,
+            "arc_number": data.arc_number,
+            "session_id": data.session_id,
+            "anti_position_text": data.anti_position_text,
+            "cross_arc_bridge_text": data.cross_arc_bridge_text,
+            "p1_v1_mapping": data.p1_v1_mapping,
+        })
+        if row is None:
+            raise NotFoundError(f"Arc with number {data.arc_number} not found")
+        return PositionResponse(**row)
+
+    async def update_position(
+        self, position_id: str, data: PositionUpdate
+    ) -> PositionResponse:
+        basic = await self._repo.get_position_basic(position_id)
+        if basic is None:
+            raise NotFoundError(f"Position '{position_id}' not found")
+        if basic["status"] not in ("draft", "under_revision"):
+            raise ConflictError(
+                f"Position '{position_id}' is locked and cannot be edited"
+            )
+        update_data = data.model_dump(exclude_none=True)
+        row = await self._repo.update_position(position_id, update_data)
+        if row is None:
+            raise NotFoundError(f"Position '{position_id}' not found")
+        return PositionResponse(**row)
+
+    async def lock_position(
+        self, position_id: str, data: PositionLock
+    ) -> PositionResponse:
+        basic = await self._repo.get_position_basic(position_id)
+        if basic is None:
+            raise NotFoundError(f"Position '{position_id}' not found")
+        if basic["status"] == "locked":
+            raise ConflictError(
+                f"Position '{position_id}' is already locked"
+            )
+
+        missing: list[str] = []
+        if not basic.get("anti_position_text"):
+            missing.append("anti_position_text")
+        if not basic.get("cross_arc_bridge_text"):
+            missing.append("cross_arc_bridge_text")
+        if not basic.get("p1_v1_mapping"):
+            missing.append("p1_v1_mapping")
+        if missing:
+            raise ValidationError(
+                f"Cannot lock: missing required fields: {', '.join(missing)}"
+            )
+
+        row = await self._repo.lock_position(position_id, data.locked_by)
+        if row is None:
+            raise NotFoundError(f"Position '{position_id}' not found")
+        return PositionResponse(**row)
+
+    async def revise_position(
+        self, position_id: str, data: PositionRevise
+    ) -> PositionResponse:
+        if data.trigger_type not in ("live_fire", "flash"):
+            raise ValidationError(
+                "trigger_type must be 'live_fire' or 'flash'"
+            )
+        basic = await self._repo.get_position_basic(position_id)
+        if basic is None:
+            raise NotFoundError(f"Position '{position_id}' not found")
+        if basic["status"] != "locked":
+            raise ConflictError(
+                "Only locked positions can be revised"
+            )
+        new_id = str(uuid4())
+        row = await self._repo.revise_position(position_id, new_id)
+        if row is None:
+            raise NotFoundError(f"Position '{position_id}' not found")
+        return PositionResponse(**row)
+
+    async def get_position_versions(
+        self, position_id: str
+    ) -> list[PositionVersionResponse]:
+        rows = await self._repo.get_position_versions(position_id)
+        if not rows:
+            raise NotFoundError(f"Position '{position_id}' not found")
+        return [PositionVersionResponse(**row) for row in rows]
 
     async def get_argument_map(self, position_id: str) -> ArgumentMapResponse:
         row = await self._repo.get_argument_map(position_id)

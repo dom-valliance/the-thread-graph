@@ -1,0 +1,23 @@
+{
+  "skill_name": "thread-prep",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Prep this week's Thread for me. We're on Arc 1 Week 1 - Agentic AI, Problem + Landscape. Pull the latest bookmarks and get me a session brief.",
+      "expected_output": "A markdown session prep brief containing: sharpened problem and landscape questions grounded in recent bookmarks, a bookmark-to-anchor mapping table, a steelman suggestion, workshop grid criteria, and reading assignments by player.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We're doing Arc 2 this Friday, it's the first week so Problem + Landscape on Palantir and Ontology. What have we got in the bookmarks that's fresh? Get me prepped.",
+      "expected_output": "A markdown session prep brief for Arc 2 Week 1, with bookmarks mapped to Business Logic Layer and AI Inflection Point PMF anchors, landscape players including Palantir Foundry, Neo4j, Databricks, and the DIY camp, and a steelman around building ontology in-house.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Friday is Arc 3 Week 2 - People Enablement Position + Pitch. We did the Problem + Landscape last week. Pull anything new from the bookmarks that could inform the position or that a Ghost Prospect might throw at us.",
+      "expected_output": "A Week 2 prep brief containing: new evidence since last week, objection fuel for the Ghost Prospect, cross-arc bridge prompts connecting to Arcs 1 and 2, and P1/V1 signal bookmarks.",
+      "files": []
+    }
+  ]
+}

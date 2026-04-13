@@ -65,30 +65,29 @@ class SyncRepository(BaseRepository):
     async def upsert_sessions(
         self, sessions: list[dict[str, object]]
     ) -> dict[str, int]:
-        """MERGE sessions on notion_id, creating arc relationships."""
+        """MERGE discussion recordings on notion_id.
+
+        Links each recording to its parent bookmark via DISCUSSED_IN.
+        Arc membership is derived from the bookmark's BELONGS_TO_ARC relationship.
+        """
         query = """
             UNWIND $items AS item
             MERGE (s:Session {notion_id: item.notion_id})
             ON CREATE SET
                 s.title = item.title,
                 s.date = item.date,
-                s.duration = item.duration,
-                s.summary = item.summary,
-                s.transcript = item.transcript,
+                s.ai_suggested_viewpoint = item.ai_suggested_viewpoint,
                 s.created_at = datetime(),
                 s.updated_at = datetime()
             ON MATCH SET
                 s.title = item.title,
                 s.date = item.date,
-                s.duration = item.duration,
-                s.summary = item.summary,
-                s.transcript = item.transcript,
+                s.ai_suggested_viewpoint = item.ai_suggested_viewpoint,
                 s.updated_at = datetime()
             WITH s, item
-            FOREACH (_ IN CASE WHEN item.theme_name IS NOT NULL THEN [1] ELSE [] END |
-                MERGE (th:Theme {name: item.theme_name})
-                ON CREATE SET th.created_at = datetime(), th.updated_at = datetime()
-                MERGE (s)-[:HAS_THEME]->(th)
+            FOREACH (_ IN CASE WHEN item.bookmark_notion_id IS NOT NULL THEN [1] ELSE [] END |
+                MERGE (b:Bookmark {notion_id: item.bookmark_notion_id})
+                MERGE (b)-[:DISCUSSED_IN]->(s)
             )
             RETURN
                 sum(CASE WHEN s.created_at = s.updated_at THEN 1 ELSE 0 END) AS created_count,

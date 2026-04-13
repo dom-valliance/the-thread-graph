@@ -20,6 +20,14 @@ class ValidationError(Exception):
         super().__init__(detail)
 
 
+class ConflictError(Exception):
+    """Raised when an operation conflicts with the current resource state."""
+
+    def __init__(self, detail: str) -> None:
+        self.detail = detail
+        super().__init__(detail)
+
+
 class DatabaseError(Exception):
     """Raised when a database operation fails."""
 
@@ -45,6 +53,15 @@ def register_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=422,
             content={"error": {"code": "VALIDATION_ERROR", "message": exc.detail}},
+        )
+
+    @app.exception_handler(ConflictError)
+    async def conflict_error_handler(
+        request: Request, exc: ConflictError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=409,
+            content={"error": {"code": "CONFLICT", "message": exc.detail}},
         )
 
     @app.exception_handler(DatabaseError)

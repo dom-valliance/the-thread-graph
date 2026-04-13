@@ -1,21 +1,10 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
-import anthropic
 import pytest
 
 from sync.theme_classifier import ThemeClassifier
-
-
-def _make_tool_response(classifications: list[dict[str, object]]) -> SimpleNamespace:
-    tool_block = SimpleNamespace(
-        type="tool_use",
-        name="classify_theme",
-        input={"classifications": classifications},
-    )
-    return SimpleNamespace(content=[tool_block])
 
 
 def _make_bookmark(
@@ -30,140 +19,135 @@ def _make_bookmark(
 
 
 class TestThemeClassifier:
-    async def test_classifies_bookmarks_missing_theme(self) -> None:
-        mock_client = AsyncMock()
-        mock_client.messages.create = AsyncMock(
-            return_value=_make_tool_response([
-                {"index": 0, "theme": "Agentic AI"},
-            ])
-        )
-
+    @patch("sync.theme_classifier.theme_graph")
+    async def test_classifies_bookmarks_missing_theme(
+        self, mock_graph: AsyncMock
+    ) -> None:
         bookmarks = [
             _make_bookmark("AI Agents for Due Diligence", topic_names=["AI", "Automation"]),
         ]
+        classified = [dict(bookmarks[0], theme_name="Agentic AI")]
+        mock_graph.ainvoke = AsyncMock(return_value={"bookmarks": classified})
 
-        classifier = ThemeClassifier(mock_client)
+        classifier = ThemeClassifier()
         result = await classifier.classify_batch(bookmarks)
 
         assert result[0]["theme_name"] == "Agentic AI"
+        mock_graph.ainvoke.assert_awaited_once()
 
-    async def test_skips_bookmarks_with_existing_theme(self) -> None:
-        mock_client = AsyncMock()
-        mock_client.messages.create = AsyncMock(
-            return_value=_make_tool_response([])
-        )
-
+    @patch("sync.theme_classifier.theme_graph")
+    async def test_skips_bookmarks_with_existing_theme(
+        self, mock_graph: AsyncMock
+    ) -> None:
         bookmarks = [
             _make_bookmark("Article 1", theme_name="Existing Theme"),
             _make_bookmark("Article 2", theme_name="Another Theme"),
         ]
+        mock_graph.ainvoke = AsyncMock(return_value={"bookmarks": bookmarks})
 
-        classifier = ThemeClassifier(mock_client)
+        classifier = ThemeClassifier()
         result = await classifier.classify_batch(bookmarks)
 
         assert result[0]["theme_name"] == "Existing Theme"
         assert result[1]["theme_name"] == "Another Theme"
-        mock_client.messages.create.assert_not_awaited()
+        mock_graph.ainvoke.assert_awaited_once()
 
-    async def test_returns_original_list_when_all_have_themes(self) -> None:
-        mock_client = AsyncMock()
-
+    @patch("sync.theme_classifier.theme_graph")
+    async def test_returns_original_list_when_all_have_themes(
+        self, mock_graph: AsyncMock
+    ) -> None:
         bookmarks = [
             _make_bookmark("Article", theme_name="Theme A"),
         ]
+        mock_graph.ainvoke = AsyncMock(return_value={"bookmarks": bookmarks})
 
-        classifier = ThemeClassifier(mock_client)
+        classifier = ThemeClassifier()
         result = await classifier.classify_batch(bookmarks)
 
-        assert result is bookmarks
-        mock_client.messages.create.assert_not_awaited()
+        assert result == bookmarks
+        mock_graph.ainvoke.assert_awaited_once()
 
-    async def test_handles_api_error_gracefully(self) -> None:
-        mock_client = AsyncMock()
-        mock_client.messages.create = AsyncMock(
-            side_effect=anthropic.APIError(
-                message="rate limited",
-                request=None,
-                body=None,
-            )
-        )
-
+    @patch("sync.theme_classifier.theme_graph")
+    async def test_handles_graph_error_gracefully(
+        self, mock_graph: AsyncMock
+    ) -> None:
         bookmarks = [
             _make_bookmark("Article without theme"),
         ]
+        mock_graph.ainvoke = AsyncMock(return_value={"bookmarks": bookmarks})
 
-        classifier = ThemeClassifier(mock_client)
+        classifier = ThemeClassifier()
         result = await classifier.classify_batch(bookmarks)
 
         assert "theme_name" not in result[0]
 
-    async def test_only_classifies_bookmarks_with_non_empty_title(self) -> None:
-        mock_client = AsyncMock()
-        mock_client.messages.create = AsyncMock(
-            return_value=_make_tool_response([
-                {"index": 0, "theme": "Data Science"},
-            ])
-        )
-
+    @patch("sync.theme_classifier.theme_graph")
+    async def test_only_classifies_bookmarks_with_non_empty_title(
+        self, mock_graph: AsyncMock
+    ) -> None:
         bookmarks = [
             _make_bookmark(""),
             _make_bookmark("   "),
             _make_bookmark("Real Article", topic_names=["Data"]),
         ]
+        classified = [
+            bookmarks[0],
+            bookmarks[1],
+            dict(bookmarks[2], theme_name="Data Science"),
+        ]
+        mock_graph.ainvoke = AsyncMock(return_value={"bookmarks": classified})
 
-        classifier = ThemeClassifier(mock_client)
+        classifier = ThemeClassifier()
         result = await classifier.classify_batch(bookmarks)
 
         assert "theme_name" not in result[0]
         assert "theme_name" not in result[1]
         assert result[2]["theme_name"] == "Data Science"
 
-    async def test_includes_known_themes_in_prompt(self) -> None:
-        mock_client = AsyncMock()
-        mock_client.messages.create = AsyncMock(
-            return_value=_make_tool_response([{"index": 0, "theme": "Agentic AI"}])
-        )
-
+    @patch("sync.theme_classifier.theme_graph")
+    async def test_passes_known_themes_to_graph(
+        self, mock_graph: AsyncMock
+    ) -> None:
         bookmarks = [_make_bookmark("Test Article")]
+        classified = [dict(bookmarks[0], theme_name="Agentic AI")]
+        mock_graph.ainvoke = AsyncMock(return_value={"bookmarks": classified})
 
-        classifier = ThemeClassifier(mock_client, known_themes=["Agentic AI", "Consulting Craft"])
+        classifier = ThemeClassifier(known_themes=["Agentic AI", "Consulting Craft"])
         await classifier.classify_batch(bookmarks)
 
-        call_args = mock_client.messages.create.call_args
-        prompt = call_args.kwargs["messages"][0]["content"]
-        assert "Agentic AI" in prompt
-        assert "Consulting Craft" in prompt
+        mock_graph.ainvoke.assert_awaited_once()
+        call_args = mock_graph.ainvoke.call_args[0][0]
+        assert "Agentic AI" in call_args["known_themes"]
+        assert "Consulting Craft" in call_args["known_themes"]
 
-    async def test_ignores_out_of_range_index(self) -> None:
-        mock_client = AsyncMock()
-        mock_client.messages.create = AsyncMock(
-            return_value=_make_tool_response([
-                {"index": 0, "theme": "Valid Theme"},
-                {"index": 99, "theme": "Should be ignored"},
-            ])
-        )
-
+    @patch("sync.theme_classifier.theme_graph")
+    async def test_ignores_out_of_range_index(
+        self, mock_graph: AsyncMock
+    ) -> None:
         bookmarks = [_make_bookmark("Single Article")]
+        classified = [dict(bookmarks[0], theme_name="Valid Theme")]
+        mock_graph.ainvoke = AsyncMock(return_value={"bookmarks": classified})
 
-        classifier = ThemeClassifier(mock_client)
+        classifier = ThemeClassifier()
         result = await classifier.classify_batch(bookmarks)
 
         assert result[0]["theme_name"] == "Valid Theme"
 
-    async def test_mixed_batch_only_classifies_missing(self) -> None:
-        mock_client = AsyncMock()
-        mock_client.messages.create = AsyncMock(
-            return_value=_make_tool_response([
-                {"index": 0, "theme": "Inferred Theme"},
-            ])
-        )
-
+    @patch("sync.theme_classifier.theme_graph")
+    async def test_mixed_batch_only_classifies_missing(
+        self, mock_graph: AsyncMock
+    ) -> None:
         bookmarks = [
             _make_bookmark("Has Theme", theme_name="Existing"),
             _make_bookmark("Needs Theme", topic_names=["Topic A"]),
         ]
+        classified = [
+            bookmarks[0],
+            dict(bookmarks[1], theme_name="Inferred Theme"),
+        ]
+        mock_graph.ainvoke = AsyncMock(return_value={"bookmarks": classified})
 
-        classifier = ThemeClassifier(mock_client)
+        classifier = ThemeClassifier()
         result = await classifier.classify_batch(bookmarks)
 
         assert result[0]["theme_name"] == "Existing"

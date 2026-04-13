@@ -243,6 +243,186 @@ class PositionRepository(BaseRepository):
             "evidence": evidence,
         }
 
+    async def create_position(self, data: dict[str, object]) -> dict[str, object] | None:
+        query = """
+            CREATE (p:Position {
+                id: $id,
+                text: $text,
+                status: 'draft',
+                version: 1,
+                locked_date: null,
+                locked_by: null,
+                anti_position_text: $anti_position_text,
+                cross_arc_bridge_text: $cross_arc_bridge_text,
+                p1_v1_mapping: $p1_v1_mapping,
+                steelman_addressed: null,
+                created_at: datetime(),
+                updated_at: datetime()
+            })
+            WITH p
+            MATCH (a:Arc {number: $arc_number})
+            CREATE (p)-[:LOCKED_IN]->(a)
+            WITH p
+            OPTIONAL MATCH (ss:ScheduledSession {id: $session_id})
+            FOREACH (_ IN CASE WHEN ss IS NOT NULL THEN [1] ELSE [] END |
+                CREATE (p)-[:PRODUCED_IN]->(ss)
+            )
+            RETURN p {
+                .id, .text, .status, .version, .locked_date, .locked_by,
+                .anti_position_text, .cross_arc_bridge_text, .p1_v1_mapping,
+                .steelman_addressed, .created_at, .updated_at,
+                arc_number: $arc_number,
+                proposition: null
+            } AS position
+        """
+        records = await self._write_and_return(query, data)
+        if not records:
+            return None
+        return serialise_record(dict(records[0]["position"]))
+
+    async def update_position(
+        self, position_id: str, data: dict[str, object]
+    ) -> dict[str, object] | None:
+        set_clauses: list[str] = []
+        params: dict[str, object] = {"id": position_id}
+
+        for field in ("text", "anti_position_text", "cross_arc_bridge_text",
+                       "p1_v1_mapping", "steelman_addressed"):
+            if field in data and data[field] is not None:
+                set_clauses.append(f"p.{field} = ${field}")
+                params[field] = data[field]
+
+        if not set_clauses:
+            return await self.get_position_basic(position_id)
+
+        set_clauses.append("p.updated_at = datetime()")
+
+        query = f"""
+            MATCH (p:Position {{id: $id}})
+            WHERE p.status IN ['draft', 'under_revision']
+            MATCH (p)-[:LOCKED_IN]->(a:Arc)
+            OPTIONAL MATCH (p)-[:MAPS_TO]->(pr:Proposition)
+            SET {', '.join(set_clauses)}
+            RETURN p {{
+                .id, .text, .status, .version, .locked_date, .locked_by,
+                .anti_position_text, .cross_arc_bridge_text, .p1_v1_mapping,
+                .steelman_addressed, .created_at, .updated_at,
+                arc_number: a.number,
+                proposition: pr.name
+            }} AS position
+        """
+        records = await self._write_and_return(query, params)
+        if not records:
+            return None
+        return serialise_record(dict(records[0]["position"]))
+
+    async def get_position_basic(self, position_id: str) -> dict[str, object] | None:
+        query = """
+            MATCH (p:Position {id: $id})-[:LOCKED_IN]->(a:Arc)
+            OPTIONAL MATCH (p)-[:MAPS_TO]->(pr:Proposition)
+            RETURN p {
+                .id, .text, .status, .version, .locked_date, .locked_by,
+                .anti_position_text, .cross_arc_bridge_text, .p1_v1_mapping,
+                .steelman_addressed, .created_at, .updated_at,
+                arc_number: a.number,
+                proposition: pr.name
+            } AS position
+        """
+        records = await self._read(query, {"id": position_id})
+        if not records:
+            return None
+        return serialise_record(dict(records[0]["position"]))
+
+    async def lock_position(
+        self, position_id: str, locked_by: str
+    ) -> dict[str, object] | None:
+        query = """
+            MATCH (p:Position {id: $id})
+            WHERE p.status IN ['draft', 'under_revision']
+              AND p.anti_position_text IS NOT NULL
+              AND p.cross_arc_bridge_text IS NOT NULL
+              AND p.p1_v1_mapping IS NOT NULL
+            MATCH (p)-[:LOCKED_IN]->(a:Arc)
+            OPTIONAL MATCH (p)-[:MAPS_TO]->(pr:Proposition)
+            SET p.status = 'locked',
+                p.locked_date = datetime(),
+                p.locked_by = $locked_by,
+                p.updated_at = datetime()
+            RETURN p {
+                .id, .text, .status, .version, .locked_date, .locked_by,
+                .anti_position_text, .cross_arc_bridge_text, .p1_v1_mapping,
+                .steelman_addressed, .created_at, .updated_at,
+                arc_number: a.number,
+                proposition: pr.name
+            } AS position
+        """
+        records = await self._write_and_return(
+            query, {"id": position_id, "locked_by": locked_by}
+        )
+        if not records:
+            return None
+        return serialise_record(dict(records[0]["position"]))
+
+    async def revise_position(
+        self, position_id: str, new_id: str
+    ) -> dict[str, object] | None:
+        query = """
+            MATCH (old:Position {id: $id})
+            WHERE old.status = 'locked'
+            MATCH (old)-[:LOCKED_IN]->(a:Arc)
+            OPTIONAL MATCH (old)-[:MAPS_TO]->(pr:Proposition)
+            CREATE (new:Position {
+                id: $new_id,
+                text: old.text,
+                status: 'draft',
+                version: old.version + 1,
+                locked_date: null,
+                locked_by: null,
+                anti_position_text: old.anti_position_text,
+                cross_arc_bridge_text: old.cross_arc_bridge_text,
+                p1_v1_mapping: old.p1_v1_mapping,
+                steelman_addressed: old.steelman_addressed,
+                created_at: datetime(),
+                updated_at: datetime()
+            })
+            CREATE (new)-[:LOCKED_IN]->(a)
+            CREATE (new)-[:SUPERSEDES]->(old)
+            FOREACH (_ IN CASE WHEN pr IS NOT NULL THEN [1] ELSE [] END |
+                CREATE (new)-[:MAPS_TO]->(pr)
+            )
+            SET old.status = 'under_revision'
+            RETURN new {
+                .id, .text, .status, .version, .locked_date, .locked_by,
+                .anti_position_text, .cross_arc_bridge_text, .p1_v1_mapping,
+                .steelman_addressed, .created_at, .updated_at,
+                arc_number: a.number,
+                proposition: pr.name
+            } AS position
+        """
+        records = await self._write_and_return(
+            query, {"id": position_id, "new_id": new_id}
+        )
+        if not records:
+            return None
+        return serialise_record(dict(records[0]["position"]))
+
+    async def get_position_versions(
+        self, position_id: str
+    ) -> list[dict[str, object]]:
+        query = """
+            MATCH (start:Position {id: $id})
+            OPTIONAL MATCH chain = (start)-[:SUPERSEDES*0..]->(older:Position)
+            WITH older
+            ORDER BY older.version DESC
+            RETURN older {
+                .id, .text, .version, .status,
+                .locked_date, .locked_by,
+                .created_at, .updated_at
+            } AS version
+        """
+        records = await self._read(query, {"id": position_id})
+        return [serialise_record(dict(record["version"])) for record in records]
+
     async def get_changes_since_lock(
         self, position_id: str
     ) -> dict[str, object] | None:

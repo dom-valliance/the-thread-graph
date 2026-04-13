@@ -14,12 +14,20 @@ from routers import (
     arguments,
     bookmarks,
     bridges,
+    briefs,
+    cycles,
     enrichment,
     evidence,
+    evidence_vault,
+    flashes,
+    forge,
     health,
+    live_fire,
     objections,
     players,
     positions,
+    prep,
+    scheduled_sessions,
     search,
     sessions,
     sync,
@@ -59,3 +67,11 @@ app.include_router(search.router, prefix="/api/v1")
 app.include_router(enrichment.router, prefix="/api/v1")
 app.include_router(sync.router, prefix="/api/v1")
 app.include_router(bridges.router, prefix="/api/v1")
+app.include_router(briefs.router, prefix="/api/v1")
+app.include_router(evidence_vault.router, prefix="/api/v1")
+app.include_router(flashes.router, prefix="/api/v1")
+app.include_router(forge.router, prefix="/api/v1")
+app.include_router(prep.router, prefix="/api/v1")
+app.include_router(live_fire.router, prefix="/api/v1")
+app.include_router(cycles.router, prefix="/api/v1")
+app.include_router(scheduled_sessions.router, prefix="/api/v1")

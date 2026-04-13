@@ -55,3 +55,45 @@
 **Correction**: Added `serialise_record()` helper in `repositories/base.py` that converts `DateTime`, `Date`, `Time`, and `Duration` to ISO 8601 strings. All repository methods must apply it before returning dicts.
 **Rule**: Every repository method that returns dicts from Neo4j records must apply `serialise_record()` to convert temporal types. Never pass raw Neo4j records to Pydantic models.
 **Applies to**: apps/api/repositories/
+
+### [2026-04-10] Fix patterns across all files, not just the first occurrence
+
+**Context**: FastAPI `status_code=204` endpoints failed with "must not have a response body". Claude fixed it in `evidence.py` but did not grep for the same pattern in other router files. The user had to restart, hit the identical error in `objections.py`, and report it again.
+**Correction**: After fixing `evidence.py`, should have immediately grepped for `status_code=204` across all routers and applied the fix (`response_model=None`) everywhere.
+**Rule**: When fixing a pattern-based bug, always search the entire codebase for the same pattern before declaring the fix complete. One occurrence almost always means more.
+**Applies to**: global
+
+### [2026-04-11] LangGraph tool_calls use Pydantic class names, not Anthropic tool names
+
+**Context**: Migrating extractors from direct Anthropic SDK to LangGraph. The old code filtered tool_use blocks by the Anthropic tool name (e.g. `store_arguments`). LangGraph's `AIMessage.tool_calls` returns tool calls where `name` is the Pydantic model class name (e.g. `ArgumentToolInput`), not the original Anthropic tool name.
+**Correction**: Updated all graph extract nodes to filter by the Pydantic class name.
+**Rule**: When using `ChatAnthropic.bind_tools()` with Pydantic models, `AIMessage.tool_calls[n]["name"]` matches the class name, not any `description` or original tool name. Always filter by the Pydantic model class name.
+**Applies to**: apps/nlp/graphs/, apps/api/graphs/
+
+### [2026-04-11] LangGraph migration requires test updates at the mock boundary
+
+**Context**: After migrating extractors to LangGraph, all 27 extractor tests failed because they mocked `anthropic.AsyncAnthropic.messages.create`, but extractors no longer use that interface.
+**Correction**: Rewrote tests to mock the compiled graph's `ainvoke` method using `@patch("extractors.<name>_extractor.<name>_graph")`. Tests that inspected prompt strings were converted to verify the correct context/state is passed to the graph.
+**Rule**: When migrating LLM integrations to a new framework, always update the test mocking boundary in the same pass. Mock the new interface (graph `ainvoke`), not the old one (SDK client). Prompt-content tests become state-passing tests.
+**Applies to**: apps/nlp/tests/
+
+### [2026-04-11] Design system re-export adapter pattern preserves import paths
+
+**Context**: Integrating `@valliance-ai/design-system` into the frontend. Components across the codebase import from `@/components/ui/Button`, `@/components/ui/Card`, etc.
+**Correction**: Used a re-export adapter pattern: existing component files at their original paths now re-export from the design system, mapping props where needed. Zero import path changes required across consumers.
+**Rule**: When adopting a design system, use re-export adapters at existing component paths to avoid a mass import refactor. Map any prop differences in the adapter.
+**Applies to**: apps/web/components/ui/
+
+### [2026-04-11] @valliance-ai/design-system requires Tailwind v4 and specific peer dependencies
+
+**Context**: Integrated `@valliance-ai/design-system@0.2.0` assuming Tailwind v3 compatibility. The DS globals.css uses `@import "tailwindcss"` (v4 syntax), `@import "tw-animate-css"`, and `@import "shadcn/tailwind.css"`. PostCSS with the v3 `tailwindcss` plugin could not process these.
+**Correction**: Upgraded to Tailwind v4 (`tailwindcss@4`, `@tailwindcss/postcss@4`). Installed `tw-animate-css`, `shadcn`, `next-themes`, `recharts` as additional dependencies. Removed `tailwind.config.ts` (v4 is CSS-configured). Changed PostCSS plugin from `tailwindcss` to `@tailwindcss/postcss`. Changed `globals.css` to just `@import '@valliance-ai/design-system/styles/globals.css'`.
+**Rule**: Always check the DS package.json `peerDependencies` and its CSS `@import` statements before integrating. The DS exports only `.` and `./styles/globals.css` -- no `./tailwind-preset`. It requires Tailwind v4. Do not assume Tailwind v3 compatibility.
+**Applies to**: apps/web/package.json, apps/web/postcss.config.js, apps/web/app/globals.css
+
+### [2026-04-11] D3 graph colours must be centralised, not scattered
+
+**Context**: 6 D3 graph components each defined their own hex colour constants (~50 hardcoded values total). This made design system token adoption painful and inconsistent.
+**Correction**: Created `lib/graph-colours.ts` as a single source of truth exporting semantic colour constants, an arc palette, and neutral scale values. All 6 graph components now import from this module.
+**Rule**: Never hardcode hex colours in D3 graph components. Import from `lib/graph-colours.ts`. When adding a new graph component, use the existing palette and neutral constants.
+**Applies to**: apps/web/components/graph/, apps/web/lib/graph-colours.ts

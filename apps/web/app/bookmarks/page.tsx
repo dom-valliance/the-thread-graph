@@ -5,24 +5,22 @@ import Link from 'next/link';
 
 export const metadata = {
   title: 'Bookmarks | Valliance Graph',
-  description: 'Browse all synced bookmarks grouped by arc.',
+  description: 'Browse all synced bookmarks grouped by theme.',
 };
 
-function groupByArcBucket(bookmarks: Bookmark[]): Map<string, Bookmark[]> {
+function groupByTheme(bookmarks: Bookmark[]): Map<string, Bookmark[]> {
   const groups = new Map<string, Bookmark[]>();
   const ungrouped: Bookmark[] = [];
 
   for (const bookmark of bookmarks) {
-    const arcs = bookmark.arc_bucket_names;
-    if (!arcs || arcs.length === 0) {
+    const theme = bookmark.theme_name;
+    if (!theme) {
       ungrouped.push(bookmark);
       continue;
     }
-    for (const arc of arcs) {
-      const list = groups.get(arc) ?? [];
-      list.push(bookmark);
-      groups.set(arc, list);
-    }
+    const list = groups.get(theme) ?? [];
+    list.push(bookmark);
+    groups.set(theme, list);
   }
 
   const sorted = new Map<string, Bookmark[]>(
@@ -109,7 +107,7 @@ async function fetchAllBookmarks(): Promise<Bookmark[]> {
 
 export default async function BookmarksPage() {
   const bookmarks = await fetchAllBookmarks();
-  const grouped = groupByArcBucket(bookmarks);
+  const grouped = groupByTheme(bookmarks);
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
@@ -117,7 +115,7 @@ export default async function BookmarksPage() {
       <h2 className="mb-4 text-2xl font-bold text-slate-900">Bookmarks</h2>
       <p className="mb-6 text-sm text-slate-500">
         {bookmarks.length} bookmark{bookmarks.length === 1 ? '' : 's'} synced from Notion,
-        grouped by arc.
+        grouped by theme.
       </p>
 
       {bookmarks.length === 0 ? (

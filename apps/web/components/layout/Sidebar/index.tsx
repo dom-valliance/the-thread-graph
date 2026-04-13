@@ -5,12 +5,18 @@ import { usePathname } from 'next/navigation';
 import { classNames } from '@/lib/utils';
 
 const NAV_ITEMS = [
+  { label: 'Dashboard', href: '/' },
+  { label: 'Schedule', href: '/schedule' },
   { label: 'Arcs', href: '/arcs' },
   { label: 'Bridges', href: '/bridges' },
   { label: 'Objections', href: '/objections' },
   { label: 'Topics', href: '/topics' },
   { label: 'Sessions', href: '/sessions' },
+  { label: 'Evidence Vault', href: '/evidence-vault' },
+  { label: 'Live Fire', href: '/live-fire' },
+  { label: 'Forge', href: '/forge' },
   { label: 'Bookmarks', href: '/bookmarks' },
+  { label: 'Fast Track', href: '/fast-track' },
 ] as const;
 
 export default function Sidebar() {
@@ -24,7 +30,7 @@ export default function Sidebar() {
       <nav className="flex-1 px-2">
         <ul className="space-y-1">
           {NAV_ITEMS.map((item) => {
-            const isActive = pathname.startsWith(item.href);
+            const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
             return (
               <li key={item.href}>
                 <Link

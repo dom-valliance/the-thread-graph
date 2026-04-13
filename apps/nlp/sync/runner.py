@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import anthropic
 import httpx
 
 from sync.bookmark_transformer import BookmarkTransformer
@@ -202,13 +201,7 @@ async def run_sync(db_target: str, dry_run: bool, full: bool = False) -> None:
             enrich: BatchEnricher | None = None
             if anthropic_key:
                 known_themes = await _get_known_themes(api_client)
-                classifier = ThemeClassifier(
-                    anthropic.AsyncAnthropic(
-                        api_key=anthropic_key,
-                        max_retries=5,
-                    ),
-                    known_themes=known_themes,
-                )
+                classifier = ThemeClassifier(known_themes=known_themes)
                 enrich = classifier.classify_batch
                 logger.info(
                     "Theme classification enabled (%d known themes).",

@@ -8,8 +8,13 @@ from models.common import ApiResponse
 from models.position import (
     ArgumentMapResponse,
     EvidenceTrailResponse,
+    PositionCreate,
     PositionDetail,
+    PositionLock,
     PositionResponse,
+    PositionRevise,
+    PositionUpdate,
+    PositionVersionResponse,
 )
 from repositories.position_repository import PositionRepository
 from services.position_service import PositionService
@@ -42,6 +47,62 @@ async def list_positions(
         "data": positions,
         "meta": {"count": len(positions), "cursor": positions[-1].id if positions else None, "has_more": len(positions) == limit},
     }
+
+
+@router.post("", response_model=ApiResponse[PositionResponse], status_code=201)
+async def create_position(
+    body: PositionCreate,
+    service: PositionService = Depends(_get_service),
+) -> dict:
+    """Create a new position in draft status."""
+    position = await service.create_position(body)
+    return {"data": position}
+
+
+@router.put("/{position_id}", response_model=ApiResponse[PositionResponse])
+async def update_position(
+    position_id: str,
+    body: PositionUpdate,
+    service: PositionService = Depends(_get_service),
+) -> dict:
+    """Update a position. Only allowed when status is draft or under_revision."""
+    position = await service.update_position(position_id, body)
+    return {"data": position}
+
+
+@router.post("/{position_id}/lock", response_model=ApiResponse[PositionResponse])
+async def lock_position(
+    position_id: str,
+    body: PositionLock,
+    service: PositionService = Depends(_get_service),
+) -> dict:
+    """Lock a position. Validates required fields are present."""
+    position = await service.lock_position(position_id, body)
+    return {"data": position}
+
+
+@router.post("/{position_id}/revise", response_model=ApiResponse[PositionResponse])
+async def revise_position(
+    position_id: str,
+    body: PositionRevise,
+    service: PositionService = Depends(_get_service),
+) -> dict:
+    """Create a new version of a locked position for revision."""
+    position = await service.revise_position(position_id, body)
+    return {"data": position}
+
+
+@router.get(
+    "/{position_id}/versions",
+    response_model=ApiResponse[list[PositionVersionResponse]],
+)
+async def get_position_versions(
+    position_id: str,
+    service: PositionService = Depends(_get_service),
+) -> dict:
+    """Get version history for a position."""
+    versions = await service.get_position_versions(position_id)
+    return {"data": versions, "meta": {"count": len(versions)}}
 
 
 @router.get("/{position_id}", response_model=ApiResponse[PositionDetail])

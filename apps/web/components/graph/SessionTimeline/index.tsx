@@ -4,19 +4,20 @@ import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import type { Session } from '@/types/entities';
 import { useContainerSize } from '@/lib/hooks/use-container-size';
+import { ARC_PALETTE, MUTED_NODE_COLOUR, NEUTRAL, GRID_STROKE, TOOLTIP_BG, TOOLTIP_FG } from '@/lib/graph-colours';
 
 const ARC_COLOURS: Record<string, string> = {
-  default: '#94a3b8',
+  default: MUTED_NODE_COLOUR,
 };
 
-const COLOUR_PALETTE = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const COLOUR_PALETTE = ARC_PALETTE.slice(0, 6);
 
 interface SessionTimelineProps {
   sessions: Session[];
   onSessionSelect?: (session: Session) => void;
 }
 
-function arcColour(arcName: string | undefined, colourMap: Map<string, string>): string {
+function arcColour(arcName: string | null | undefined, colourMap: Map<string, string>): string {
   if (!arcName) return ARC_COLOURS.default;
   if (colourMap.has(arcName)) return colourMap.get(arcName)!;
   const index = colourMap.size % COLOUR_PALETTE.length;
@@ -61,7 +62,7 @@ export default function SessionTimeline({ sessions, onSessionSelect }: SessionTi
       .call(xAxis)
       .selectAll('text')
       .style('font-size', '10px')
-      .attr('fill', '#64748b');
+      .attr('fill', NEUTRAL[500]);
 
     container
       .append('line')
@@ -69,7 +70,7 @@ export default function SessionTimeline({ sessions, onSessionSelect }: SessionTi
       .attr('x2', innerWidth)
       .attr('y1', innerHeight / 2)
       .attr('y2', innerHeight / 2)
-      .attr('stroke', '#e2e8f0')
+      .attr('stroke', GRID_STROKE)
       .attr('stroke-width', 2);
 
     const colourMap = new Map<string, string>();
@@ -80,8 +81,8 @@ export default function SessionTimeline({ sessions, onSessionSelect }: SessionTi
       .attr('class', 'session-timeline-tooltip')
       .style('position', 'absolute')
       .style('padding', '8px 12px')
-      .style('background', '#1e293b')
-      .style('color', '#f8fafc')
+      .style('background', TOOLTIP_BG)
+      .style('color', TOOLTIP_FG)
       .style('border-radius', '6px')
       .style('font-size', '12px')
       .style('pointer-events', 'none')

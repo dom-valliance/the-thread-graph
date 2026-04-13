@@ -5,10 +5,11 @@ import * as d3 from 'd3';
 import type { Argument } from '@/types/entities';
 import type { GraphNode } from '@/types/graph';
 import { useContainerSize } from '@/lib/hooks/use-container-size';
+import { GRAPH_COLOURS, LINK_COLOUR, LABEL_COLOUR } from '@/lib/graph-colours';
 
-const SUPPORT_COLOUR = '#22c55e';
-const CHALLENGE_COLOUR = '#ef4444';
-const POSITION_COLOUR = '#3b82f6';
+const SUPPORT_COLOUR = GRAPH_COLOURS.green;
+const CHALLENGE_COLOUR = GRAPH_COLOURS.danger;
+const POSITION_COLOUR = GRAPH_COLOURS.primary;
 
 const STRENGTH_RADIUS: Record<string, number> = {
   Strong: 24,
@@ -156,7 +157,7 @@ export default function ArgumentMap({
       .selectAll('line')
       .data(links)
       .join('line')
-      .attr('stroke', '#cbd5e1')
+      .attr('stroke', LINK_COLOUR)
       .attr('stroke-width', 1.5)
       .attr('stroke-opacity', 0.5);
 
@@ -199,7 +200,7 @@ export default function ArgumentMap({
       .attr('text-anchor', 'middle')
       .attr('dy', (d) => d.size + 14)
       .style('font-size', (d) => (d.zone === 'centre' ? '12px' : '10px'))
-      .style('fill', '#475569')
+      .style('fill', LABEL_COLOUR)
       .style('pointer-events', 'none');
 
     simulation.on('tick', () => {

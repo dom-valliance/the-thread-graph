@@ -37,6 +37,27 @@ The canonical property mapping for database `22d575346e48818ebf26d6c958efe16f`:
 
 Other properties exist but are not currently mapped: AI Enhanced, Author, Status, Liked By, Promote for Discussion, etc.
 
+### [2026-04-10] Discussion Recordings DB schema (NOTION_SESSIONS_DB_ID)
+
+**Database ID**: 265575346e488076ae3dccb2eb07e42e
+**Actual name**: "Discussion Recordings"
+
+Sessions are not standalone; they are discussion recordings linked to bookmarks.
+A bookmark gets a recording when its Status is "Discussed" or "Viewpoint added".
+
+**Properties**:
+| Notion Property | Type | Maps to |
+|---|---|---|
+| Name | title | title |
+| Date Created | date | date |
+| Bookmark | relation | bookmark_notion_id (first related page ID) |
+| AI Suggested Viewpoint | rich_text | ai_suggested_viewpoint |
+
+**What does NOT exist** (contrary to original module spec):
+- No "Duration", "Summary", "Transcript", or "Arc" properties
+- Transcript lives in the page body (block children), needs blocks API
+- Arc is derived via: Recording -> Bookmark relation -> BELONGS_TO_ARC -> Arc
+
 ### [2026-04-09] session_date vs date field name mismatch
 
 **Context**: SessionTransformer output `session_date` but the API's SessionSyncRequest model expected `date`. Sessions synced without dates, making date filtering return nothing.

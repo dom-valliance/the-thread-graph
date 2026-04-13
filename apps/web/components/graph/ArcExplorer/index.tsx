@@ -7,11 +7,18 @@ import type { GraphNode, GraphLink } from '@/types/graph';
 import { useContainerSize } from '@/lib/hooks/use-container-size';
 import { useArcBookmarks } from '@/lib/hooks/use-arc-bookmarks';
 import BookmarkDetailPanel from './BookmarkDetailPanel';
+import {
+  ARC_PALETTE,
+  GRAPH_COLOURS,
+  MUTED_NODE_COLOUR,
+  LINK_COLOUR,
+  LABEL_COLOUR,
+} from '@/lib/graph-colours';
 
-const NODE_COLOURS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-const BOOKMARK_COLOUR = '#6366f1';
-const MORE_COLOUR = '#94a3b8';
-const EDGE_COLOUR = '#f59e0b';
+const NODE_COLOURS = ARC_PALETTE.slice(0, 6);
+const BOOKMARK_COLOUR = GRAPH_COLOURS.indigo;
+const MORE_COLOUR = MUTED_NODE_COLOUR;
+const EDGE_COLOUR = GRAPH_COLOURS.warning;
 
 interface ArcExplorerProps {
   arcs: Arc[];
@@ -162,7 +169,7 @@ export default function ArcExplorer({ arcs, bridges }: ArcExplorerProps) {
       .data(links)
       .join('path')
       .attr('fill', 'none')
-      .attr('stroke', '#94a3b8')
+      .attr('stroke', MUTED_NODE_COLOUR)
       .attr('stroke-width', (d) => d.strength)
       .attr('stroke-opacity', 0.6);
 
@@ -385,7 +392,7 @@ export default function ArcExplorer({ arcs, bridges }: ArcExplorerProps) {
         const targetId = typeof d.target === 'string' ? d.target : (d.target as GraphNode).id;
         // Bookmark-to-bookmark edges are amber
         if (sourceId.startsWith('bm:') && targetId.startsWith('bm:')) return EDGE_COLOUR;
-        return '#cbd5e1';
+        return LINK_COLOUR;
       })
       .attr('stroke-width', (d) => d.strength)
       .attr('stroke-opacity', 0.5);
@@ -448,7 +455,7 @@ export default function ArcExplorer({ arcs, bridges }: ArcExplorerProps) {
       .attr('dy', (d) => d.size + 14)
       .style('font-size', (d) => (d.type === 'arc' ? '13px' : '10px'))
       .style('font-weight', (d) => (d.type === 'arc' ? '600' : '400'))
-      .style('fill', '#475569')
+      .style('fill', LABEL_COLOUR)
       .style('pointer-events', 'none');
 
     simulation.on('tick', () => {

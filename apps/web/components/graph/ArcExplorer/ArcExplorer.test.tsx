@@ -22,9 +22,12 @@ const MOCK_ARCS: Arc[] = [
 
 const MOCK_BRIDGES: ArcBridge[] = [
   {
+    id: 'bridge-1',
     source_arc_name: 'Test Theme Alpha',
     target_arc_name: 'Test Theme Beta',
     shared_topics: 2,
+    strength: 'Core',
+    label: null,
   },
 ];
 

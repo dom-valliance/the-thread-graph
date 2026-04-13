@@ -7,27 +7,23 @@ class SessionRepository(BaseRepository):
     async def list_sessions(
         self,
         arc: str | None = None,
-        person: str | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
         cursor: str | None = None,
         limit: int = 25,
     ) -> list[dict[str, object]]:
-        """List sessions with optional filters and cursor-based pagination."""
+        """List discussion recordings with optional filters and cursor pagination.
+
+        Arc filter works via the linked bookmark's BELONGS_TO_ARC relationship.
+        """
         conditions: list[str] = []
         params: dict[str, object] = {"limit": limit}
 
         if arc:
             conditions.append(
-                "EXISTS { MATCH (s)-[:HAS_THEME]->(th:Theme {name: $arc}) }"
+                "EXISTS { MATCH (b)-[:BELONGS_TO_ARC]->(a:Arc {name: $arc}) }"
             )
             params["arc"] = arc
-
-        if person:
-            conditions.append(
-                "EXISTS { MATCH (pe:Person {name: $person})-[:PRESENTED_IN]->(s) }"
-            )
-            params["person"] = person
 
         if date_from:
             conditions.append("s.date >= $date_from")
@@ -45,13 +41,13 @@ class SessionRepository(BaseRepository):
 
         query = f"""
             MATCH (s:Session)
+            OPTIONAL MATCH (b:Bookmark)-[:DISCUSSED_IN]->(s)
             {where_clause}
-            OPTIONAL MATCH (s)-[:HAS_THEME]->(th:Theme)
-            WITH s, th
+            WITH s, b
             RETURN s {{
-                .notion_id, .title, .date, .duration, .summary,
+                .notion_id, .title, .date, .ai_suggested_viewpoint,
                 .enrichment_status, .created_at, .updated_at,
-                theme_name: th.name
+                bookmark_notion_id: b.notion_id
             }} AS session
             ORDER BY session.date DESC, session.notion_id
             LIMIT $limit
@@ -60,50 +56,24 @@ class SessionRepository(BaseRepository):
         return [serialise_record(dict(record["session"])) for record in records]
 
     async def get_session(self, notion_id: str) -> dict[str, object] | None:
-        """Get a single session by notion_id with related entities."""
+        """Get a single discussion recording with related entities."""
         query = """
             MATCH (s:Session {notion_id: $notion_id})
-            OPTIONAL MATCH (s)-[:HAS_THEME]->(th:Theme)
-            WITH s, th
+            OPTIONAL MATCH (b:Bookmark)-[:DISCUSSED_IN]->(s)
+            WITH s, b
             OPTIONAL MATCH (s)-[:CONTAINED]->(arg:Argument)
-            WITH s, th, collect(DISTINCT {id: arg.id, text: arg.text, sentiment: arg.sentiment}) AS arguments
+            WITH s, b, collect(DISTINCT {id: arg.id, text: arg.text, sentiment: arg.sentiment}) AS arguments
             OPTIONAL MATCH (s)-[:GENERATED]->(ai:ActionItem)
-            WITH s, th, arguments, collect(DISTINCT {id: ai.id, text: ai.text, status: ai.status}) AS action_items
-            OPTIONAL MATCH (s)-[:REFERENCED]->(b:Bookmark)
-            WITH s, th, arguments, action_items, collect(DISTINCT {notion_id: b.notion_id, title: b.title}) AS referenced_bookmarks
+            WITH s, b, arguments, collect(DISTINCT {id: ai.id, text: ai.text, status: ai.status}) AS action_items
             RETURN s {
-                .notion_id, .title, .date, .duration, .summary,
+                .notion_id, .title, .date, .ai_suggested_viewpoint,
                 .enrichment_status, .created_at, .updated_at,
-                theme_name: th.name,
+                bookmark_notion_id: b.notion_id,
                 arguments: arguments,
-                action_items: action_items,
-                referenced_bookmarks: referenced_bookmarks
+                action_items: action_items
             } AS session
         """
         records = await self._read(query, {"notion_id": notion_id})
         if not records:
             return None
         return serialise_record(dict(records[0]["session"]))
-
-    async def upsert_sessions(self, sessions: list[dict[str, object]]) -> int:
-        """Upsert sessions via MERGE on notion_id. Returns count of rows processed."""
-        query = """
-            UNWIND $sessions AS sess
-            MERGE (s:Session {notion_id: sess.notion_id})
-                ON CREATE SET
-                    s.title = sess.title,
-                    s.date = sess.date,
-                    s.duration = sess.duration,
-                    s.summary = sess.summary,
-                    s.enrichment_status = 'pending',
-                    s.created_at = datetime(),
-                    s.updated_at = datetime()
-                ON MATCH SET
-                    s.title = sess.title,
-                    s.date = sess.date,
-                    s.duration = sess.duration,
-                    s.summary = sess.summary,
-                    s.updated_at = datetime()
-        """
-        summary = await self._write(query, {"sessions": sessions})
-        return summary.counters.nodes_created + summary.counters.properties_set

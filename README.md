@@ -1,6 +1,6 @@
 # Valliance Graph
 
-Knowledge graph application for Valliance. Ingests bookmarks and learning session transcripts from Notion, extracts arguments and evidence using NLP, and visualises the resulting graph through four interactive D3 views.
+Knowledge graph and operational platform for the Valliance Thread, a continuous 12-week learning curriculum. Ingests bookmarks and session recordings from Notion, extracts arguments and evidence using NLP, manages the cycle lifecycle (scheduling, session capture, lock workflow, evidence tracking, content pipeline), and visualises the resulting graph through interactive D3 views.
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────┐
@@ -18,10 +18,10 @@ Knowledge graph application for Valliance. Ingests bookmarks and learning sessio
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 14 (App Router), React 18, TypeScript 5, D3.js 7, TanStack Query 5, Tailwind CSS |
-| Middleware | Python 3.12, FastAPI, Pydantic v2, async neo4j driver |
-| Database | Neo4j 5.x with APOC |
-| NLP | Python, Anthropic SDK (Claude) |
+| Frontend | Next.js 14 (App Router), React 18, TypeScript 5, D3.js 7, TanStack Query 5, Tailwind CSS v4, @valliance-ai/design-system v0.2.x |
+| Middleware | Python 3.12, FastAPI, Pydantic v2, async neo4j driver, LangGraph + LangChain (Anthropic) |
+| Database | Neo4j 5.x |
+| NLP | Python, LangGraph agents (Claude via langchain-anthropic) for argument extraction and thread prep generation |
 | Sync | Notion API via httpx with rate limiting |
 | Infrastructure | Azure (AKS), Terraform, Docker, Kustomize, GitHub Actions |
 | Package managers | pnpm (frontend), uv (Python) |
@@ -33,7 +33,7 @@ Knowledge graph application for Valliance. Ingests bookmarks and learning sessio
 ├── apps/
 │   ├── web/          # Next.js frontend (port 3000)
 │   ├── api/          # FastAPI middleware (port 8000)
-│   └── nlp/          # NLP extraction pipeline + Notion sync
+│   └── nlp/          # NLP extraction pipeline (LangGraph agents) + Notion sync
 ├── packages/
 │   └── shared/       # Shared TypeScript constants and types
 ├── infra/
@@ -44,6 +44,47 @@ Knowledge graph application for Valliance. Ingests bookmarks and learning sessio
 └── .github/
     └── workflows/    # CI/CD pipelines
 ```
+
+## Application Features
+
+### Operational Layer (The Thread)
+
+The Thread runs every Friday afternoon in a 2.5-hour block. The app manages the full lifecycle:
+
+| Feature | Route | Description |
+|---------|-------|-------------|
+| Dashboard | `/` | Current cycle status, active session, quick actions |
+| Schedule | `/schedule` | 12-week grid with lead/shadow assignments, create cycles |
+| Session Workspace | `/sessions/{id}/workspace` | Week 1: Problem-Landscape Brief editor. Week 2: Position editor with lock workflow |
+| Session Prep | `/sessions/{id}/prep` | Auto-generated prep brief, AI-powered thread prep, reading lists, workshop assignments |
+| Evidence Vault | `/evidence-vault` | Filterable evidence entries by arc, proposition (P1/V1), and type |
+| Live Fire | `/live-fire` | Track field usage of positions, submit entries, view metrics |
+| Forge | `/forge` | Kanban board for the content pipeline (12 artefacts per cycle) |
+| Fast Track | `/fast-track` | Onboarding digest of locked positions |
+
+### Lock Workflow
+
+Positions and Problem-Landscape Briefs follow a draft-to-locked lifecycle. Once locked, they can only be revised via Live Fire (field evidence of failure) or Flash (market disruption). Each revision creates a new version linked via `SUPERSEDES`.
+
+### Thread Prep Generation
+
+The prep page includes an AI-powered brief generator (`POST /scheduled-sessions/{id}/generate-prep`) backed by a LangGraph agent that:
+1. Resolves arc structure data and determines week type
+2. Pulls recent bookmarks and locked positions from Neo4j
+3. Builds a context-rich prompt and maps bookmarks to PMF canvas anchors using Claude (via LangGraph StateGraph)
+4. Produces a structured brief (sharpened questions, steelman, workshop criteria, reading assignments, flash checks)
+5. Validates the output and persists the result to Neo4j
+
+### Knowledge Graph
+
+| Feature | Route | Description |
+|---------|-------|-------------|
+| Arc Explorer | `/arcs` | Force-directed graph of arcs with drill-down to bookmarks |
+| Bridge Explorer | `/bridges` | Cross-arc connection visualisation |
+| Objection Forge | `/objections` | CRUD for objection-response pairs |
+| Topics | `/topics` | Topic explorer with co-occurrence |
+| Sessions | `/sessions` | Session timeline with filters |
+| Bookmarks | `/bookmarks` | All bookmarks grouped by theme |
 
 ## Prerequisites
 
@@ -61,7 +102,7 @@ Knowledge graph application for Valliance. Ingests bookmarks and learning sessio
 
 ```bash
 cp .env.example .env
-# Edit .env with your Neo4j password and any API keys
+# Edit .env with your Neo4j password, Notion keys, and Anthropic API key
 ```
 
 ### 2. Neo4j
@@ -73,7 +114,6 @@ docker run -d \
   --name neo4j \
   -p 7474:7474 -p 7687:7687 \
   -e NEO4J_AUTH=neo4j/changeme \
-  -e NEO4J_PLUGINS='["apoc"]' \
   neo4j:5-community
 ```
 
@@ -131,7 +171,7 @@ Requires `NOTION_API_KEY`, `NOTION_BOOKMARKS_DB_ID`, and `NOTION_SESSIONS_DB_ID`
 cd apps/nlp
 
 # Sync all databases
-python -m sync.runner
+python -m sync.runner --full
 
 # Sync bookmarks only
 python -m sync.runner --db bookmarks
@@ -421,26 +461,69 @@ On merge to `main`, the deploy workflow builds images, pushes to ACR, and deploy
 
 All endpoints are prefixed with `/api/v1/`. Full interactive docs at `/docs`.
 
+### Operational Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /cycles | List all cycles |
+| GET | /cycles/current | Current cycle with active session and days until next |
+| POST | /cycles | Create a cycle (generates 12 scheduled sessions) |
+| GET | /cycles/{id}/schedule | 12-week schedule with lead/shadow assignments |
+| PUT | /cycles/{id}/schedule/{session_id} | Update lead/shadow assignment |
+| GET | /scheduled-sessions/{id} | Session detail |
+| POST | /briefs | Create a Problem-Landscape Brief (draft) |
+| GET | /briefs/{id} | Brief with landscape grid |
+| PUT | /briefs/{id} | Update brief (draft only) |
+| POST | /briefs/{id}/lock | Lock a brief |
+| POST | /positions | Create a position (draft) |
+| PUT | /positions/{id} | Update position (draft/under_revision only) |
+| POST | /positions/{id}/lock | Lock position (validates required fields) |
+| POST | /positions/{id}/revise | Create new version of locked position |
+| GET | /positions/{id}/versions | Version history |
+| POST | /live-fire | Submit a Live Fire entry |
+| GET | /live-fire | List entries with filters |
+| GET | /live-fire/metrics | Per-position usage metrics |
+| POST | /flashes | Submit a Flash |
+| GET | /flashes | List flashes |
+| GET | /flashes/pending | Pending flashes |
+| PUT | /flashes/{id} | Update flash status |
+| GET | /evidence-vault | Filtered evidence (arc, proposition, type) |
+| POST | /forge | Create a Forge assignment |
+| GET | /forge | List assignments |
+| PUT | /forge/{id} | Update assignment (validated status transitions) |
+| GET | /forge/tracker | Cycle artefact tracker |
+| POST | /scheduled-sessions/{id}/generate-prep | Generate AI thread prep brief |
+| POST | /scheduled-sessions/{id}/regenerate-prep | Regenerate thread prep brief |
+| GET | /scheduled-sessions/{id}/thread-prep | Get persisted thread prep brief |
+| GET | /scheduled-sessions/{id}/prep-brief | Auto-generated prep brief |
+| POST | /scheduled-sessions/{id}/workshop-assignments | Assign workshop players |
+| POST | /scheduled-sessions/{id}/reading-list | Assign reading |
+
+### Knowledge Graph Endpoints
+
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | /health | Liveness probe with Neo4j connectivity |
 | GET | /arcs | List arcs with position counts |
-| GET | /arcs/{number} | Arc detail with positions, bridges, steelman arguments |
-| GET | /arcs/{number}/positions | Positions locked in an arc |
-| GET | /arcs/bridges | All cross-arc bridges |
+| GET | /arcs/{name} | Arc detail with bookmarks |
+| GET | /arcs/{name}/bookmarks | Paginated bookmarks for an arc |
+| GET | /arcs/bridges | Cross-arc bridges |
 | GET | /bookmarks | Paginated bookmarks (filter by topic, theme) |
-| GET | /bookmarks/{id} | Bookmark detail with relationships |
 | GET | /positions | List positions (filter by arc, status, proposition) |
-| GET | /positions/{id}/arguments | Argument map (supporting, challenging, steelman) |
+| GET | /positions/{id} | Position detail with arguments and evidence |
+| GET | /positions/{id}/arguments | Argument map |
+| GET | /positions/{id}/evidence-trail | Evidence provenance chain |
 | GET | /sessions | Session timeline (filter by arc, person, date range) |
 | GET | /topics | Topics with bookmark counts |
-| GET | /topics/cross-arc | Topics spanning 3+ arcs |
 | GET | /search?q=... | Cross-entity full-text search |
+| GET | /bridges | Cross-arc bridge list |
+| GET | /objections | Objection-response pairs |
 | POST | /enrichment/arguments | Batch create arguments (NLP pipeline) |
 | POST | /sync/bookmarks | Upsert bookmarks (Notion sync) |
 | POST | /sync/sessions | Upsert sessions (Notion sync) |
 
 Response envelope: `{"data": ..., "meta": {"count": N}}` for collections, `{"data": ...}` for singles.
+Error envelope: `{"error": {"code": "NOT_FOUND", "message": "..."}}` with appropriate HTTP status.
 
 ---
 

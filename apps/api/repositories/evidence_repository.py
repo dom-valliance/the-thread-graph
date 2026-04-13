@@ -137,6 +137,57 @@ class EvidenceRepository(BaseRepository):
         summary = await self._write(query, {"id": evidence_id})
         return summary.counters.nodes_deleted > 0
 
+    async def list_vault_evidence(
+        self,
+        arc: str | None = None,
+        proposition: str | None = None,
+        vault_type: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> list[dict[str, object]]:
+        """List evidence with vault-specific filters (arc, proposition, vault_type, dates)."""
+        where_clauses: list[str] = []
+        params: dict[str, object] = {}
+
+        if arc is not None:
+            where_clauses.append("a.name = $arc")
+            params["arc"] = arc
+
+        if proposition is not None:
+            where_clauses.append("e.proposition_mapping = $proposition")
+            params["proposition"] = proposition
+
+        if vault_type is not None:
+            where_clauses.append("e.vault_type = $vault_type")
+            params["vault_type"] = vault_type
+
+        if date_from is not None:
+            where_clauses.append("e.created_at >= datetime($date_from)")
+            params["date_from"] = date_from
+
+        if date_to is not None:
+            where_clauses.append("e.created_at <= datetime($date_to)")
+            params["date_to"] = date_to
+
+        where = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+        query = f"""
+            MATCH (e:Evidence)
+            OPTIONAL MATCH (e)-[:SUPPORTS]->(p:Position)-[:LOCKED_IN]->(a:Arc)
+            OPTIONAL MATCH (e)-[:SOURCED_FROM]->(b:Bookmark)
+            {where}
+            RETURN e {{
+                .id, .text, .type, .proposition_mapping, .vault_type,
+                .created_at, .updated_at,
+                source_id: b.id,
+                source_title: b.title,
+                position_id: p.id
+            }} AS evidence
+            ORDER BY e.created_at DESC
+        """
+        records = await self._read(query, params)
+        return [serialise_record(dict(record["evidence"])) for record in records]
+
     async def batch_create_evidence(
         self, evidence_list: list[dict[str, object]]
     ) -> int:

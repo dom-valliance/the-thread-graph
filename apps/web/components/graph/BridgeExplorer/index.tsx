@@ -5,13 +5,14 @@ import * as d3 from 'd3';
 import type { CrossArcBridge, UnconnectedPosition } from '@/types/entities';
 import type { GraphNode, GraphLink } from '@/types/graph';
 import { useContainerSize } from '@/lib/hooks/use-container-size';
+import { ARC_PALETTE, GRAPH_COLOURS, MUTED_NODE_COLOUR, GRID_STROKE, NEUTRAL } from '@/lib/graph-colours';
 
-const NODE_COLOURS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const NODE_COLOURS = ARC_PALETTE.slice(0, 6);
 
 const STRENGTH_STYLES: Record<string, { width: number; colour: string; dash: string }> = {
-  Core: { width: 3, colour: '#1e293b', dash: 'none' },
-  Supporting: { width: 2, colour: '#64748b', dash: 'none' },
-  Tangential: { width: 1, colour: '#94a3b8', dash: '4 2' },
+  Core: { width: 3, colour: NEUTRAL[800], dash: 'none' },
+  Supporting: { width: 2, colour: NEUTRAL[500], dash: 'none' },
+  Tangential: { width: 1, colour: MUTED_NODE_COLOUR, dash: '4 2' },
 };
 
 interface BridgeExplorerProps {
@@ -173,7 +174,7 @@ export default function BridgeExplorer({ bridges, gaps }: BridgeExplorerProps) {
       .attr('x', ([num]) => arcCentres.get(num)?.x ?? cx)
       .attr('y', ([num]) => (arcCentres.get(num)?.y ?? cy) - radius * 0.35)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#94a3b8')
+      .attr('fill', MUTED_NODE_COLOUR)
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text(([, name]) => name);
@@ -185,7 +186,7 @@ export default function BridgeExplorer({ bridges, gaps }: BridgeExplorerProps) {
       .selectAll('line')
       .data(links)
       .join('line')
-      .attr('stroke', (d) => STRENGTH_STYLES[d.bridgeData.strength]?.colour ?? '#94a3b8')
+      .attr('stroke', (d) => STRENGTH_STYLES[d.bridgeData.strength]?.colour ?? MUTED_NODE_COLOUR)
       .attr('stroke-width', (d) => STRENGTH_STYLES[d.bridgeData.strength]?.width ?? 1)
       .attr('stroke-dasharray', (d) => STRENGTH_STYLES[d.bridgeData.strength]?.dash ?? 'none')
       .attr('stroke-opacity', 0.7);
@@ -198,11 +199,11 @@ export default function BridgeExplorer({ bridges, gaps }: BridgeExplorerProps) {
       .style('position', 'absolute')
       .style('visibility', 'hidden')
       .style('background', 'white')
-      .style('border', '1px solid #e2e8f0')
+      .style('border', `1px solid ${GRID_STROKE}`)
       .style('border-radius', '8px')
       .style('padding', '10px 14px')
       .style('font-size', '12px')
-      .style('color', '#334155')
+      .style('color', NEUTRAL[700])
       .style('box-shadow', '0 2px 8px rgba(0,0,0,0.1)')
       .style('max-width', '300px')
       .style('z-index', '50')
@@ -221,7 +222,7 @@ export default function BridgeExplorer({ bridges, gaps }: BridgeExplorerProps) {
         tooltip
           .html(
             `<strong>${p.arcName}</strong><br/>${p.text}${
-              !p.connected ? '<br/><em style="color:#ef4444">No cross-arc bridges</em>' : ''
+              !p.connected ? `<br/><em style="color:${GRAPH_COLOURS.danger}">No cross-arc bridges</em>` : ''
             }`,
           )
           .style('visibility', 'visible');
@@ -280,7 +281,7 @@ export default function BridgeExplorer({ bridges, gaps }: BridgeExplorerProps) {
       .attr('text-anchor', 'middle')
       .attr('dy', (d) => d.size + 12)
       .style('font-size', '9px')
-      .style('fill', '#64748b')
+      .style('fill', NEUTRAL[500])
       .style('pointer-events', 'none');
 
     simulation.on('tick', () => {

@@ -5,18 +5,16 @@ import type { Topic } from '@/types/entities';
 
 const MOCK_TOPICS: (Topic & { bookmark_count?: number })[] = [
   {
-    id: 'topic-1',
     name: 'Machine Learning',
-    description: 'ML techniques and applications',
     bookmark_count: 12,
+    primary_arc: null,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
   },
   {
-    id: 'topic-2',
     name: 'Graph Theory',
-    description: null,
     bookmark_count: 5,
+    primary_arc: null,
     created_at: '2026-01-02T00:00:00Z',
     updated_at: '2026-01-02T00:00:00Z',
   },

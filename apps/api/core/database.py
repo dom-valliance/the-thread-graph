@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from neo4j import AsyncGraphDatabase
-from neo4j import AsyncDriver
+from neo4j import AsyncGraphDatabase, AsyncDriver, NotificationDisabledCategory
 
 from core.config import Settings
 
@@ -11,6 +10,7 @@ async def create_driver(settings: Settings) -> AsyncDriver:
     return AsyncGraphDatabase.driver(
         settings.neo4j_uri,
         auth=(settings.neo4j_user, settings.neo4j_password),
+        notifications_disabled_categories=[NotificationDisabledCategory.UNRECOGNIZED],
     )
 
 

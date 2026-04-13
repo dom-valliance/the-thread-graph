@@ -51,7 +51,7 @@ async def update_evidence(
     return {"data": evidence}
 
 
-@router.delete("/{evidence_id}", status_code=204)
+@router.delete("/{evidence_id}", status_code=204, response_model=None)
 async def delete_evidence(
     evidence_id: str,
     service: EvidenceService = Depends(_get_service),

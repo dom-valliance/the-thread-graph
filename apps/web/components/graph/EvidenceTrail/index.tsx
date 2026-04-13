@@ -6,14 +6,21 @@ import type { EvidenceTrailBookmark, EvidenceTrailItem } from '@/types/entities'
 import type { GraphNode } from '@/types/graph';
 import { useContainerSize } from '@/lib/hooks/use-container-size';
 import { useEvidenceTrail, useCreateEvidence } from '@/lib/hooks/use-evidence-trail';
+import {
+  GRAPH_COLOURS,
+  MUTED_NODE_COLOUR,
+  LINK_COLOUR as LINK_COLOUR_IMPORTED,
+  LABEL_COLOUR,
+  NEUTRAL,
+} from '@/lib/graph-colours';
 
-const EDGE_COLOUR = '#3b82f6';
-const FOUNDATIONAL_COLOUR = '#10b981';
-const DEFAULT_BOOKMARK_COLOUR = '#94a3b8';
-const EVIDENCE_COLOUR = '#64748b';
-const POSITION_COLOUR = '#8b5cf6';
-const BRIDGE_RING_COLOUR = '#f59e0b';
-const LINK_COLOUR = '#cbd5e1';
+const EDGE_COLOUR = GRAPH_COLOURS.primary;
+const FOUNDATIONAL_COLOUR = GRAPH_COLOURS.success;
+const DEFAULT_BOOKMARK_COLOUR = MUTED_NODE_COLOUR;
+const EVIDENCE_COLOUR = NEUTRAL[500];
+const POSITION_COLOUR = GRAPH_COLOURS.purple;
+const BRIDGE_RING_COLOUR = GRAPH_COLOURS.warning;
+const LINK_COLOUR = LINK_COLOUR_IMPORTED;
 
 const BOOKMARK_RADIUS = 18;
 const EVIDENCE_RADIUS = 12;
@@ -276,7 +283,7 @@ export default function EvidenceTrail({ positionId }: EvidenceTrailProps) {
       .attr('text-anchor', 'middle')
       .style('font-size', '13px')
       .style('font-weight', '600')
-      .style('fill', '#64748b')
+      .style('fill', NEUTRAL[500])
       .style('opacity', 0.6);
 
     columnLabels
@@ -287,7 +294,7 @@ export default function EvidenceTrail({ positionId }: EvidenceTrailProps) {
       .attr('text-anchor', 'middle')
       .style('font-size', '13px')
       .style('font-weight', '600')
-      .style('fill', '#64748b')
+      .style('fill', NEUTRAL[500])
       .style('opacity', 0.6);
 
     columnLabels
@@ -298,7 +305,7 @@ export default function EvidenceTrail({ positionId }: EvidenceTrailProps) {
       .attr('text-anchor', 'middle')
       .style('font-size', '13px')
       .style('font-weight', '600')
-      .style('fill', '#64748b')
+      .style('fill', NEUTRAL[500])
       .style('opacity', 0.6);
 
     // Links
@@ -370,7 +377,7 @@ export default function EvidenceTrail({ positionId }: EvidenceTrailProps) {
       .attr('text-anchor', 'middle')
       .attr('dy', (d) => d.size + 14)
       .style('font-size', '10px')
-      .style('fill', '#475569')
+      .style('fill', LABEL_COLOUR)
       .style('pointer-events', 'none');
 
     // Tick handler

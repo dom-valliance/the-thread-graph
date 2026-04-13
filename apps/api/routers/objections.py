@@ -69,7 +69,7 @@ async def update_objection(
     return {"data": pair}
 
 
-@router.delete("/{pair_id}", status_code=204)
+@router.delete("/{pair_id}", status_code=204, response_model=None)
 async def delete_objection(
     pair_id: str,
     service: ObjectionService = Depends(_get_service),

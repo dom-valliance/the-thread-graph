@@ -1,21 +1,11 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from extractors.evidence_extractor import EvidenceExtractor
 from models.extraction import ExtractionContext, ExtractedEvidence, PositionRef
-
-
-def _make_tool_response(evidence: list[dict[str, object]]) -> SimpleNamespace:
-    tool_block = SimpleNamespace(
-        type="tool_use",
-        name="store_evidence",
-        input={"evidence": evidence},
-    )
-    return SimpleNamespace(content=[tool_block])
 
 
 @pytest.fixture()
@@ -27,28 +17,29 @@ def extraction_context() -> ExtractionContext:
 
 
 class TestEvidenceExtractor:
+    @patch("extractors.evidence_extractor.evidence_graph")
     async def test_returns_valid_extracted_evidence(
         self,
-        mock_anthropic_client: AsyncMock,
+        mock_graph: AsyncMock,
         sample_transcript: str,
         extraction_context: ExtractionContext,
     ) -> None:
-        raw_evidence = [
-            {
-                "text": "400 documents processed in 2 hours vs 3-4 days manually",
-                "type": "data_point",
-                "position_id": "pos-001",
-            },
-            {
-                "text": "94% accuracy rate on document review",
-                "type": "data_point",
-            },
+        expected = [
+            ExtractedEvidence(
+                id="ev-1",
+                text="400 documents processed in 2 hours vs 3-4 days manually",
+                type="data_point",
+                position_id="pos-001",
+            ),
+            ExtractedEvidence(
+                id="ev-2",
+                text="94% accuracy rate on document review",
+                type="data_point",
+            ),
         ]
-        mock_anthropic_client.messages.create = AsyncMock(
-            return_value=_make_tool_response(raw_evidence)
-        )
+        mock_graph.ainvoke = AsyncMock(return_value={"results": expected})
 
-        extractor = EvidenceExtractor(mock_anthropic_client)
+        extractor = EvidenceExtractor()
         results = await extractor.extract(sample_transcript, extraction_context)
 
         assert len(results) == 2
@@ -57,64 +48,65 @@ class TestEvidenceExtractor:
         assert results[0].type == "data_point"
         assert results[0].position_id == "pos-001"
         assert results[1].position_id is None
+        mock_graph.ainvoke.assert_awaited_once()
+        call_args = mock_graph.ainvoke.call_args[0][0]
+        assert call_args["transcript"] == sample_transcript
+        assert call_args["context"] == extraction_context
 
-    async def test_returns_empty_list_when_no_tool_use(
+    @patch("extractors.evidence_extractor.evidence_graph")
+    async def test_returns_empty_list_when_no_results(
         self,
-        mock_anthropic_client: AsyncMock,
+        mock_graph: AsyncMock,
         sample_transcript: str,
         extraction_context: ExtractionContext,
     ) -> None:
-        text_block = SimpleNamespace(type="text", text="No evidence found.")
-        mock_anthropic_client.messages.create = AsyncMock(
-            return_value=SimpleNamespace(content=[text_block])
-        )
+        mock_graph.ainvoke = AsyncMock(return_value={"results": []})
 
-        extractor = EvidenceExtractor(mock_anthropic_client)
+        extractor = EvidenceExtractor()
         results = await extractor.extract(sample_transcript, extraction_context)
 
         assert results == []
 
+    @patch("extractors.evidence_extractor.evidence_graph")
     async def test_each_item_gets_unique_id(
         self,
-        mock_anthropic_client: AsyncMock,
+        mock_graph: AsyncMock,
         sample_transcript: str,
         extraction_context: ExtractionContext,
     ) -> None:
-        raw_evidence = [
-            {"text": "First evidence", "type": "citation"},
-            {"text": "Second evidence", "type": "anecdote"},
-            {"text": "Third evidence", "type": "case_study"},
+        expected = [
+            ExtractedEvidence(id="ev-1", text="First evidence", type="citation"),
+            ExtractedEvidence(id="ev-2", text="Second evidence", type="anecdote"),
+            ExtractedEvidence(id="ev-3", text="Third evidence", type="case_study"),
         ]
-        mock_anthropic_client.messages.create = AsyncMock(
-            return_value=_make_tool_response(raw_evidence)
-        )
+        mock_graph.ainvoke = AsyncMock(return_value={"results": expected})
 
-        extractor = EvidenceExtractor(mock_anthropic_client)
+        extractor = EvidenceExtractor()
         results = await extractor.extract(sample_transcript, extraction_context)
 
         ids = [r.id for r in results]
         assert len(set(ids)) == 3
 
+    @patch("extractors.evidence_extractor.evidence_graph")
     async def test_optional_fields_default_to_none(
         self,
-        mock_anthropic_client: AsyncMock,
+        mock_graph: AsyncMock,
         sample_transcript: str,
         extraction_context: ExtractionContext,
     ) -> None:
-        raw_evidence = [{"text": "Some evidence", "type": "citation"}]
-        mock_anthropic_client.messages.create = AsyncMock(
-            return_value=_make_tool_response(raw_evidence)
-        )
+        expected = [ExtractedEvidence(id="ev-1", text="Some evidence", type="citation")]
+        mock_graph.ainvoke = AsyncMock(return_value={"results": expected})
 
-        extractor = EvidenceExtractor(mock_anthropic_client)
+        extractor = EvidenceExtractor()
         results = await extractor.extract(sample_transcript, extraction_context)
 
         assert results[0].source_bookmark_id is None
         assert results[0].position_id is None
 
-    async def test_appends_existing_positions_to_prompt(
+    @patch("extractors.evidence_extractor.evidence_graph")
+    async def test_passes_existing_positions_in_context(
         self,
-        mock_anthropic_client: AsyncMock,
+        mock_graph: AsyncMock,
         sample_transcript: str,
     ) -> None:
         context = ExtractionContext(
@@ -124,14 +116,13 @@ class TestEvidenceExtractor:
                 PositionRef(id="pos-001", text="AI improves consulting efficiency"),
             ],
         )
-        mock_anthropic_client.messages.create = AsyncMock(
-            return_value=_make_tool_response([])
-        )
+        mock_graph.ainvoke = AsyncMock(return_value={"results": []})
 
-        extractor = EvidenceExtractor(mock_anthropic_client)
+        extractor = EvidenceExtractor()
         await extractor.extract(sample_transcript, context)
 
-        call_args = mock_anthropic_client.messages.create.call_args
-        prompt = call_args.kwargs["messages"][0]["content"]
-        assert "pos-001" in prompt
-        assert "AI improves consulting efficiency" in prompt
+        mock_graph.ainvoke.assert_awaited_once()
+        call_args = mock_graph.ainvoke.call_args[0][0]
+        assert call_args["context"] == context
+        assert call_args["context"].existing_positions[0].id == "pos-001"
+        assert call_args["context"].existing_positions[0].text == "AI improves consulting efficiency"

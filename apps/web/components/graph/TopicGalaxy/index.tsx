@@ -5,8 +5,7 @@ import * as d3 from 'd3';
 import type { Topic, TopicCoOccurrence } from '@/types/entities';
 import type { GraphNode } from '@/types/graph';
 import { useContainerSize } from '@/lib/hooks/use-container-size';
-
-const ARC_COLOURS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+import { ARC_PALETTE, LABEL_COLOUR, MUTED_NODE_COLOUR, TOOLTIP_BG, TOOLTIP_FG } from '@/lib/graph-colours';
 
 interface TopicNode extends GraphNode {
   data: Topic;
@@ -23,12 +22,12 @@ interface TopicGalaxyProps {
 }
 
 function arcColour(arc: string | null | undefined, index: number): string {
-  if (!arc) return ARC_COLOURS[index % ARC_COLOURS.length];
+  if (!arc) return ARC_PALETTE[index % ARC_PALETTE.length];
   let hash = 0;
   for (let i = 0; i < arc.length; i++) {
     hash = arc.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return ARC_COLOURS[Math.abs(hash) % ARC_COLOURS.length];
+  return ARC_PALETTE[Math.abs(hash) % ARC_PALETTE.length];
 }
 
 function nodeRadius(topic: Topic): number {
@@ -112,8 +111,8 @@ export default function TopicGalaxy({ topics, coOccurrences = [], onTopicSelect 
       .attr('class', 'topic-galaxy-tooltip')
       .style('position', 'absolute')
       .style('padding', '6px 10px')
-      .style('background', '#1e293b')
-      .style('color', '#f8fafc')
+      .style('background', TOOLTIP_BG)
+      .style('color', TOOLTIP_FG)
       .style('border-radius', '6px')
       .style('font-size', '12px')
       .style('pointer-events', 'none')
@@ -125,7 +124,7 @@ export default function TopicGalaxy({ topics, coOccurrences = [], onTopicSelect 
       .selectAll('line')
       .data(links)
       .join('line')
-      .attr('stroke', '#94a3b8')
+      .attr('stroke', MUTED_NODE_COLOUR)
       .attr('stroke-width', (d) => d.strength)
       .attr('stroke-opacity', 0.5);
 
@@ -188,7 +187,7 @@ export default function TopicGalaxy({ topics, coOccurrences = [], onTopicSelect 
       .attr('text-anchor', 'middle')
       .attr('dy', (d) => d.size + 14)
       .style('font-size', '11px')
-      .style('fill', '#475569')
+      .style('fill', LABEL_COLOUR)
       .style('pointer-events', 'none');
 
     simulation.on('tick', () => {

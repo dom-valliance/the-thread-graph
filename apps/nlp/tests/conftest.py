@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -23,8 +22,3 @@ def sample_transcript() -> str:
 @pytest.fixture()
 def expected_arguments() -> list[dict[str, object]]:
     return json.loads((FIXTURES_DIR / "expected_arguments_1.json").read_text())
-
-
-@pytest.fixture()
-def mock_anthropic_client() -> AsyncMock:
-    return AsyncMock()

@@ -7,9 +7,8 @@ class SessionResponse(BaseModel):
     notion_id: str
     title: str
     date: str | None = None
-    duration: int | None = None
-    summary: str | None = None
-    theme_name: str | None = None
+    ai_suggested_viewpoint: str | None = None
+    bookmark_notion_id: str | None = None
     enrichment_status: str | None = None
     created_at: str
     updated_at: str
@@ -19,9 +18,8 @@ class SessionCreate(BaseModel):
     notion_id: str
     title: str
     date: str | None = None
-    duration: int | None = None
-    summary: str | None = None
-    theme_name: str | None = None
+    ai_suggested_viewpoint: str | None = None
+    bookmark_notion_id: str | None = None
 
 
 class ArgumentSummary(BaseModel):

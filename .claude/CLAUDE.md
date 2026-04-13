@@ -6,10 +6,10 @@ This file augments the global Valliance standards in `~/.claude/CLAUDE.md`. Do n
 
 ## Stack
 
-- **Frontend**: Next.js 14 (App Router), React 18, TypeScript 5.x, D3.js for graph visualisation
-- **Middleware**: Python 3.12, FastAPI, Pydantic v2, uvicorn
+- **Frontend**: Next.js 14 (App Router), React 18, TypeScript 5.x, Tailwind CSS v4, D3.js for graph visualisation, @valliance-ai/design-system v0.2.x
+- **Middleware**: Python 3.12, FastAPI, Pydantic v2, uvicorn, LangGraph + langchain-anthropic
 - **Database**: Neo4j 5.x (Cypher), neo4j Python driver
-- **NLP**: Python, OpenAI/Anthropic SDK for argument extraction
+- **NLP**: Python, LangGraph StateGraph agents (Claude via langchain-anthropic) for argument extraction, evidence extraction, entity extraction, action item extraction, theme classification, and thread prep generation
 - **Infrastructure**: Azure (AKS), Terraform, Docker, GitHub Actions CI/CD
 - **Package managers**: pnpm (frontend), uv (Python)
 - **Monorepo layout**: Turborepo with `apps/` and `packages/` directories
@@ -40,9 +40,9 @@ valliance-graph/
 │   ├── web/                 # Next.js frontend
 │   │   ├── app/             # App Router pages and layouts
 │   │   ├── components/      # React components
-│   │   │   ├── ui/          # Generic UI primitives
-│   │   │   └── graph/       # D3 visualisation components
-│   │   ├── lib/             # Client utilities, API client, hooks
+│   │   │   ├── ui/          # Design system re-export adapters (Button, Card, SearchBar, etc.)
+│   │   │   └── graph/       # D3 visualisation components (use lib/graph-colours.ts)
+│   │   ├── lib/             # Client utilities, API client, hooks, graph-colours.ts
 │   │   └── types/           # Shared TypeScript types
 │   ├── api/                 # FastAPI middleware
 │   │   ├── routers/         # Route modules (one per entity domain)
@@ -52,7 +52,8 @@ valliance-graph/
 │   │   ├── schemas/         # Neo4j node/relationship schemas
 │   │   └── core/            # Config, dependencies, middleware
 │   └── nlp/                 # NLP enrichment pipeline
-│       ├── extractors/      # Argument, entity, action item extractors
+│       ├── graphs/          # LangGraph StateGraph definitions (one per extraction type)
+│       ├── extractors/      # Thin wrappers delegating to graphs/ (argument, entity, action item, evidence)
 │       ├── processors/      # Transcript processing orchestration
 │       └── prompts/         # LLM prompt templates (version controlled)
 ├── packages/
@@ -90,8 +91,20 @@ valliance-graph/
 
 - All data fetching via server components or React Query (TanStack Query) for client components.
 - D3 visualisations wrapped in React components with proper lifecycle management (useEffect for D3 bindings, cleanup on unmount).
-- Tailwind CSS for layout and utility styling. No CSS modules.
+- Tailwind CSS v4 for styling. Configuration is CSS-based (no `tailwind.config.ts`). The DS globals.css (`@valliance-ai/design-system/styles/globals.css`) is imported in `app/globals.css` and provides all tokens, theme variables, and the `@import "tailwindcss"` directive. No CSS modules.
+- UI primitives (Button, Card, Spinner, Input) re-exported from `@valliance-ai/design-system` via adapter components in `components/ui/`. Do not use raw Tailwind for base components; use the design system.
+- Layout components (Sidebar, Header) use design system primitives (`NavItem`, `PageHeader`).
+- D3 graph colours must be imported from `lib/graph-colours.ts`. Never hardcode hex colour values in graph components.
 - Components follow: `ComponentName/index.tsx` with co-located `ComponentName.test.tsx`.
+
+### LangGraph Conventions
+
+- All LLM workloads use LangGraph `StateGraph` definitions in `apps/nlp/graphs/` or `apps/api/graphs/`.
+- Each graph has a typed `State` (TypedDict), prompt-building node(s), and an extraction/generation node.
+- LLM instances created via `graphs/llm.py:get_llm()`. Never instantiate `ChatAnthropic` directly.
+- Tool schemas are Pydantic models in `graphs/tool_schemas.py`, bound via `ChatAnthropic.bind_tools()`.
+- Extractors in `apps/nlp/extractors/` are thin wrappers that call `graph.ainvoke()`. Business logic lives in graph nodes.
+- Tests mock the compiled graph's `ainvoke` method, not the LLM directly.
 
 ### Python Conventions
 
@@ -120,9 +133,9 @@ valliance-graph/
 
 ### NLP Pipeline (apps/nlp)
 
-- **Unit**: pytest. Test extractors with fixture transcripts and expected outputs.
+- **Unit**: pytest. Test extractors by mocking the compiled LangGraph `ainvoke` method (not the LLM directly). Use `@patch("extractors.<name>_extractor.<name>_graph")`.
 - **Evaluation**: LLM output quality checks against golden datasets (precision/recall on argument extraction).
-- Coverage target: 85% on orchestration code. LLM call boundaries tested via mocks.
+- Coverage target: 85% on orchestration code. Graph boundaries tested via mocks on `ainvoke`.
 
 ### Infrastructure
 
@@ -167,6 +180,12 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 - Sync transformer output field names must exactly match the target Pydantic model. Mismatches are silent (Pydantic uses defaults for missing fields, ignores extras).
 - When creating a paginated or filtered variant of an existing Cypher query, diff the RETURN clause field-by-field against the original. Missing fields cause silent `undefined` values that crash the frontend. Use optional chaining (`?.`) on all array property access in components consuming API data.
 - Theme and Arc are distinct concepts. Theme (`HAS_THEME`) is a Notion classification label. Arc (`BELONGS_TO_ARC`) is a structural Thread curriculum category. When a feature needs arc alignment, use `BELONGS_TO_ARC`, not `HAS_THEME`.
+- FastAPI `status_code=204` endpoints must include `response_model=None` in the decorator, otherwise FastAPI raises "Status code 204 must not have a response body". When fixing any pattern-based issue, grep the entire codebase for the same pattern and fix all occurrences in one pass.
+- LangGraph `tool_calls` format: `AIMessage.tool_calls` returns `list[dict]` with keys `name`, `args`, `id`. The `name` matches the Pydantic model class name (e.g. `ArgumentToolInput`), not the original Anthropic tool name. Always filter by class name, not the old tool name.
+- D3 graph components operate outside React's render cycle. If design system tokens are CSS custom properties, they must be resolved to raw hex/rgb via `getComputedStyle` before passing to D3 `.style()` or `.attr()` calls. The centralised `lib/graph-colours.ts` handles this.
+- The `@valliance-ai/design-system` package is hosted on GitHub Packages. The `.npmrc` at repo root configures the `@valliance-ai` scope. A valid `GITHUB_TOKEN` environment variable is required for `pnpm install`.
+- The design system requires Tailwind v4, `@tailwindcss/postcss`, `tw-animate-css`, `shadcn`, `next-themes`, and `recharts` as peer/transitive dependencies. PostCSS config uses `@tailwindcss/postcss` (not `tailwindcss`). There is no `tailwind.config.ts`; all config is in CSS.
+- When migrating LLM workloads to LangGraph, always update the corresponding tests to mock at the graph level (`graph.ainvoke`), not at the old Anthropic SDK level. Tests that inspect prompt content should be rewritten to verify the correct context/state is passed to the graph.
 
 ## Memory Protocol
 
@@ -179,3 +198,5 @@ Claude maintains long-term memory in `.claude/notes/`. See the global CLAUDE.md 
 - `d3.md`: Force simulation tuning, React integration patterns.
 - `infra.md`: Terraform state issues, AKS configuration, Docker build optimisations.
 - `nlp.md`: Prompt engineering findings, extraction accuracy improvements.
+- `langgraph.md`: LangGraph patterns, tool schema conventions, state management.
+- `design-system.md`: @valliance-ai/design-system integration patterns, token usage.

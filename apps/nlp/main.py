@@ -3,22 +3,17 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
-import os
 import sys
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-import anthropic
-
 from client.api_client import ApiClient
 from extractors.argument_extractor import ArgumentExtractor
 from extractors.action_item_extractor import ActionItemExtractor
 from extractors.evidence_extractor import EvidenceExtractor
 from extractors.entity_extractor import EntityExtractor
-from models.extraction import ExtractionContext
-from models.session import SessionInput
 from processors.batch_processor import BatchProcessor
 from processors.transcript_processor import TranscriptProcessor
 
@@ -29,22 +24,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def build_processor(client: anthropic.AsyncAnthropic) -> TranscriptProcessor:
+def build_processor() -> TranscriptProcessor:
     return TranscriptProcessor(
-        argument_extractor=ArgumentExtractor(client),
-        action_item_extractor=ActionItemExtractor(client),
-        evidence_extractor=EvidenceExtractor(client),
-        entity_extractor=EntityExtractor(client),
+        argument_extractor=ArgumentExtractor(),
+        action_item_extractor=ActionItemExtractor(),
+        evidence_extractor=EvidenceExtractor(),
+        entity_extractor=EntityExtractor(),
     )
 
 
 async def run_single(session_id: str) -> None:
-    anthropic_client = anthropic.AsyncAnthropic(
-        api_key=os.environ["ANTHROPIC_API_KEY"],
-        max_retries=5,
-    )
     api_client = ApiClient()
-    processor = build_processor(anthropic_client)
+    processor = build_processor()
 
     try:
         sessions = await api_client.get_unprocessed_sessions()
@@ -79,12 +70,8 @@ async def run_single(session_id: str) -> None:
 
 
 async def run_batch() -> None:
-    anthropic_client = anthropic.AsyncAnthropic(
-        api_key=os.environ["ANTHROPIC_API_KEY"],
-        max_retries=5,
-    )
     api_client = ApiClient()
-    processor = build_processor(anthropic_client)
+    processor = build_processor()
     batch = BatchProcessor(processor, api_client)
 
     try:

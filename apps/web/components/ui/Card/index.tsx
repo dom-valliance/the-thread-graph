@@ -1,5 +1,10 @@
+import {
+  Card as DSCard,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@valliance-ai/design-system';
 import type { ReactNode } from 'react';
-import { classNames } from '@/lib/utils';
 
 interface CardProps {
   title?: string;
@@ -10,15 +15,13 @@ interface CardProps {
 
 export default function Card({ title, children, className, padding = true }: CardProps) {
   return (
-    <div
-      className={classNames(
-        'rounded-lg border border-slate-200 bg-white shadow-sm',
-        padding && 'p-6',
-        className,
+    <DSCard className={className}>
+      {title && (
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
       )}
-    >
-      {title && <h3 className="mb-4 text-base font-semibold text-slate-900">{title}</h3>}
-      {children}
-    </div>
+      <CardContent className={padding ? undefined : 'p-0'}>{children}</CardContent>
+    </DSCard>
   );
 }

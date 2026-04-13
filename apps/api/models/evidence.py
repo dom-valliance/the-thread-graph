@@ -10,6 +10,8 @@ class EvidenceResponse(BaseModel):
     source_id: str | None = None
     source_title: str | None = None
     position_id: str | None = None
+    proposition_mapping: str | None = None
+    vault_type: str | None = None
     created_at: str
     updated_at: str
 

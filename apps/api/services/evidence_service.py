@@ -63,6 +63,23 @@ class EvidenceService:
         if not deleted:
             raise NotFoundError(f"Evidence '{evidence_id}' not found")
 
+    async def list_vault_evidence(
+        self,
+        arc: str | None = None,
+        proposition: str | None = None,
+        vault_type: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> list[EvidenceResponse]:
+        rows = await self._repo.list_vault_evidence(
+            arc=arc,
+            proposition=proposition,
+            vault_type=vault_type,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        return [EvidenceResponse(**row) for row in rows]
+
     async def batch_create_evidence(
         self, evidence_list: list[dict[str, object]]
     ) -> int:

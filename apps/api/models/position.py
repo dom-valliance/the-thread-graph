@@ -3,13 +3,56 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 
+class PositionCreate(BaseModel):
+    text: str
+    arc_number: int
+    session_id: str
+    anti_position_text: str | None = None
+    cross_arc_bridge_text: str | None = None
+    p1_v1_mapping: str | None = None
+
+
+class PositionUpdate(BaseModel):
+    text: str | None = None
+    anti_position_text: str | None = None
+    cross_arc_bridge_text: str | None = None
+    p1_v1_mapping: str | None = None
+    steelman_addressed: str | None = None
+
+
+class PositionLock(BaseModel):
+    locked_by: str
+
+
+class PositionRevise(BaseModel):
+    trigger_type: str
+    trigger_id: str
+
+
 class PositionResponse(BaseModel):
     id: str
     text: str
     status: str
+    version: int = 1
     locked_date: str | None = None
+    locked_by: str | None = None
     arc_number: int
     proposition: str | None = None
+    anti_position_text: str | None = None
+    cross_arc_bridge_text: str | None = None
+    p1_v1_mapping: str | None = None
+    steelman_addressed: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class PositionVersionResponse(BaseModel):
+    id: str
+    text: str
+    version: int
+    status: str
+    locked_date: str | None = None
+    locked_by: str | None = None
     created_at: str
     updated_at: str
 

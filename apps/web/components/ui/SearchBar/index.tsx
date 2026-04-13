@@ -1,5 +1,6 @@
 'use client';
 
+import { Input } from '@valliance-ai/design-system';
 import { useEffect, useRef, useState } from 'react';
 import { classNames } from '@/lib/utils';
 
@@ -61,12 +62,12 @@ export default function SearchBar({
           d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
         />
       </svg>
-      <input
+      <Input
         type="text"
         value={localValue}
         onChange={(e) => handleChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-md border border-slate-300 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+        className="pl-10"
       />
     </div>
   );
