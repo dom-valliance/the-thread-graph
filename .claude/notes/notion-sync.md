@@ -71,3 +71,17 @@ A bookmark gets a recording when its Status is "Discussed" or "Viewpoint added".
 **Correction**: Added `--full` flag that clears the sync state, forcing a complete re-fetch.
 **Rule**: After changing field mapping logic, always re-sync with `--full` to backfill corrected data for all records.
 **Applies to**: apps/nlp/sync/runner.py, apps/nlp/sync_state.json
+
+### [2026-04-13] Notion multi-select tag values must be normalised before MERGE-by-name in Neo4j
+
+**Context**: The bookmark sync did `MERGE (a:Arc {name: arc_name})` straight from Notion's "Arc Bucket" multi-select. Notion contained both "Consulting Craft" and "The Consulting Craft", and "Palantir/Ontology" and "Palantir / Ontology". This created duplicate Arc nodes — orphans with `number IS NULL` and 171/96 bookmarks attached, while the seed-created Arc 4 and Arc 2 had zero bookmarks. The Thread Prep generator then found 0 bookmarks for the arc because it queries by `Arc {number: $arc_number}`.
+**Correction**: Added `normalise_arc_name` with an alias map in `bookmark_transformer.py`. All Notion arc tag variants now map to the canonical seeded names ("The Consulting Craft", "Palantir / Ontology", etc.) before the upsert sees them. Also updated `scripts/seed.py` so the canonical names match.
+**Rule**: When MERGEing graph nodes by a string field that comes from a free-form Notion tag (multi_select / select), normalise the string in the transformer first via an explicit alias map. Never trust Notion tag values to be canonical. The map lives next to the transformer that uses it. If the canonical-name set is small and known (like the six Arcs), the alias map should also reject unknown values rather than letting them silently create new nodes.
+**Applies to**: apps/nlp/sync/bookmark_transformer.py, apps/api/repositories/sync_repository.py, scripts/seed.py
+
+### [2026-04-13] Date strings must be cast to Neo4j date type during MERGE, not stored as strings
+
+**Context**: 1791 bookmarks were synced but only 3 had `date_added` populated, and the Thread Prep query (`b.date_added >= date() - duration({days: 14})`) returned 0 rows. Two compounding causes: (a) the upsert wrote `b.date_added = item.date_added` which stored the value as a plain string in most cases, breaking the date-arithmetic query; (b) the transformer's `_extract_date` only handled the `date` property type, returning `None` when the Notion property type was actually `created_time` or when the user-editable Date Added field was empty.
+**Correction**: Wrapped the value in `date(datetime(item.date_added))` in the upsert so it is stored as a real Neo4j Date. Made `_extract_date` switch on `prop.get("type")` to handle `date`, `created_time`, and `last_edited_time` payloads. Added a fallback to the page-level `notion_page["created_time"]` when the property is null, so every bookmark gets at least an ingestion-time date.
+**Rule**: When ingesting date values into Neo4j, always cast them to the temporal type at write time (`date(datetime(...))` for ISO strings, `date($s)` for plain `YYYY-MM-DD`). Storing dates as strings disables all date arithmetic and index usage. When reading from Notion, switch on the property type before extracting — `date`, `created_time`, and `last_edited_time` all live under different keys and a single hard-coded path will silently return None for the wrong type.
+**Applies to**: apps/nlp/sync/bookmark_transformer.py, apps/api/repositories/sync_repository.py, any future sync that writes temporal fields

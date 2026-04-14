@@ -20,7 +20,7 @@ class SyncRepository(BaseRepository):
                 b.edge_or_foundational = item.edge_or_foundational,
                 b.focus = item.focus,
                 b.time_consumption = item.time_consumption,
-                b.date_added = item.date_added,
+                b.date_added = CASE WHEN item.date_added IS NULL THEN null ELSE date(datetime(item.date_added)) END,
                 b.created_at = datetime(),
                 b.updated_at = datetime()
             ON MATCH SET
@@ -32,7 +32,7 @@ class SyncRepository(BaseRepository):
                 b.edge_or_foundational = item.edge_or_foundational,
                 b.focus = item.focus,
                 b.time_consumption = item.time_consumption,
-                b.date_added = item.date_added,
+                b.date_added = CASE WHEN item.date_added IS NULL THEN null ELSE date(datetime(item.date_added)) END,
                 b.updated_at = datetime()
             WITH b, item
             FOREACH (topic_name IN item.topic_names |

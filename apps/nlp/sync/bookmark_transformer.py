@@ -4,6 +4,28 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Maps Notion arc tag variants to the canonical Arc name in Neo4j.
+# Keep keys lowercase and stripped; lookups normalise the same way.
+ARC_NAME_ALIASES: dict[str, str] = {
+    "agentic ai": "Agentic AI",
+    "palantir/ontology": "Palantir / Ontology",
+    "palantir / ontology": "Palantir / Ontology",
+    "palantir": "Palantir / Ontology",
+    "ontology": "Palantir / Ontology",
+    "people enablement": "People Enablement",
+    "consulting craft": "The Consulting Craft",
+    "the consulting craft": "The Consulting Craft",
+    "agentic engineering": "Agentic Engineering",
+    "value realisation": "Value Realisation",
+    "value realization": "Value Realisation",
+}
+
+
+def normalise_arc_name(name: str) -> str | None:
+    if not name:
+        return None
+    return ARC_NAME_ALIASES.get(name.strip().lower(), name.strip())
+
 
 class BookmarkTransformer:
     """Transforms a Notion page from the Bookmarks database into an API-compatible dict."""
@@ -43,12 +65,17 @@ class BookmarkTransformer:
             "time_consumption": self._extract_select(
                 properties.get("Time Consumption", {})
             ),
-            "date_added": self._extract_date(properties.get("Date Added", {})),
+            "date_added": (
+                self._extract_date(properties.get("Date Added", {}))
+                or notion_page.get("created_time")
+            ),
             "topic_names": topic_names,
             "theme_name": theme,
-            "arc_bucket_names": self._extract_multi_select(
-                properties.get("Arc Bucket", {})
-            ),
+            "arc_bucket_names": [
+                normalised
+                for raw in self._extract_multi_select(properties.get("Arc Bucket", {}))
+                if (normalised := normalise_arc_name(raw)) is not None
+            ],
             "theme_page_ids": self._extract_relation_ids(
                 properties.get("Valliance Themes", {})
             ),
@@ -109,10 +136,20 @@ class BookmarkTransformer:
         return []
 
     def _extract_date(self, prop: dict[str, object]) -> str | None:
+        prop_type = prop.get("type")
+        if prop_type == "date":
+            date = prop.get("date")
+            if date is None:
+                return None
+            return date.get("start")
+        if prop_type in ("created_time", "last_edited_time"):
+            value = prop.get(prop_type)
+            return value if isinstance(value, str) else None
+        # Fallback for cases where type is missing but date payload exists.
         date = prop.get("date")
-        if date is None:
-            return None
-        return date.get("start")
+        if isinstance(date, dict):
+            return date.get("start")
+        return None
 
     def _extract_relation_ids(self, prop: dict[str, object]) -> list[str]:
         """Extract page IDs from a Notion relation property."""

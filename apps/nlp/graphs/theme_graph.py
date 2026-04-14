@@ -8,7 +8,7 @@ from typing import TypedDict
 from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, START, END
 
-from graphs.llm import get_llm
+from graphs.llm import get_llm, with_llm_retry
 from graphs.tool_schemas import ThemeClassifyToolInput
 
 logger = logging.getLogger(__name__)
@@ -79,7 +79,9 @@ async def classify_node(state: ThemeClassifierState) -> dict:
         llm = get_llm(max_tokens=2048).bind_tools(
             [ThemeClassifyToolInput], tool_choice="any"
         )
-        response = await llm.ainvoke([HumanMessage(content=prompt)])
+        response = await with_llm_retry(
+            lambda: llm.ainvoke([HumanMessage(content=prompt)])
+        )
 
         for tool_call in response.tool_calls:
             if tool_call["name"] != "ThemeClassifyToolInput":

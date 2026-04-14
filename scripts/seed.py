@@ -24,9 +24,9 @@ NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD", "changeme")
 
 ARCS = [
     {"number": 1, "name": "Agentic AI"},
-    {"number": 2, "name": "Palantir/Ontology"},
+    {"number": 2, "name": "Palantir / Ontology"},
     {"number": 3, "name": "People Enablement"},
-    {"number": 4, "name": "Consulting Craft"},
+    {"number": 4, "name": "The Consulting Craft"},
     {"number": 5, "name": "Agentic Engineering"},
     {"number": 6, "name": "Value Realisation"},
 ]

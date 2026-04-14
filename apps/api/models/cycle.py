@@ -24,7 +24,7 @@ class ScheduledSessionResponse(BaseModel):
     cycle_number: int
     week_number: int
     arc_number: int
-    arc_name: str
+    arc_name: str | None = None
     week_type: str
     date: str | None = None
     status: str

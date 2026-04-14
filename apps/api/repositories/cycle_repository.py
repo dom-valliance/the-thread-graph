@@ -126,8 +126,10 @@ class CycleRepository(BaseRepository):
                 s.updated_at = datetime()
             MERGE (s)-[:PART_OF]->(c)
             WITH s, ss
-            MATCH (a:Arc {number: ss.arc_number})
-            MERGE (s)-[:COVERS]->(a)
+            OPTIONAL MATCH (a:Arc {number: ss.arc_number})
+            FOREACH (_ IN CASE WHEN a IS NOT NULL THEN [1] ELSE [] END |
+                MERGE (s)-[:COVERS]->(a)
+            )
             WITH s
             ORDER BY s.week_number
             WITH collect(s) AS all_sessions
